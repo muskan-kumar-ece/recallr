@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to verify user authentication
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to verify resource ownership
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper to ensure userId field (if present) matches the authenticated owner and remains immutable
+    function isValidOwnerDoc(userId) {
+      return !('userId' in request.resource.data) || request.resource.data.userId == userId;
+    }
+
+    function isImmutableOwnerDoc() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+
+    // User Profile Document (/users/{userId})
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidOwnerDoc(userId);
+      allow update: if isOwner(userId) && isImmutableOwnerDoc();
+      allow delete: if isOwner(userId);
+    }
+
+    // Subcollection: People Directory (/users/{userId}/people/{personId})
+    match /users/{userId}/people/{personId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidOwnerDoc(userId);
+      allow update: if isOwner(userId) && isImmutableOwnerDoc();
+      allow delete: if isOwner(userId);
+    }
+
+    // Subcollection: Activities Timeline (/users/{userId}/activities/{activityId})
+    match /users/{userId}/activities/{activityId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidOwnerDoc(userId);
+      allow update: if isOwner(userId) && isImmutableOwnerDoc();
+      allow delete: if isOwner(userId);
+    }
+
+    // Subcollection: Follow-ups & Commitments (/users/{userId}/follow_ups/{followUpId})
+    match /users/{userId}/follow_ups/{followUpId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidOwnerDoc(userId);
+      allow update: if isOwner(userId) && isImmutableOwnerDoc();
+      allow delete: if isOwner(userId);
+    }
+
+    // Subcollection: Omni-Captures (/users/{userId}/captures/{captureId})
+    match /users/{userId}/captures/{captureId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidOwnerDoc(userId);
+      allow update: if isOwner(userId) && isImmutableOwnerDoc();
+      allow delete: if isOwner(userId);
+    }
+
+    // Subcollection: Memory Claims (/users/{userId}/claims/{claimId})
+    match /users/{userId}/claims/{claimId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidOwnerDoc(userId);
+      allow update: if isOwner(userId) && isImmutableOwnerDoc();
+      allow delete: if isOwner(userId);
+    }
+
+    // Subcollection: Interactions (/users/{userId}/interactions/{interactionId})
+    match /users/{userId}/interactions/{interactionId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidOwnerDoc(userId);
+      allow update: if isOwner(userId) && isImmutableOwnerDoc();
+      allow delete: if isOwner(userId);
+    }
+    
+    // Catch-all for any other nested subcollections under /users/{userId}
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    // Legacy top-level items collection (Secured: strictly isolated to document owner, immutable userId)
+    match /items/{itemId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() 
+        && resource.data.userId == request.auth.uid 
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Fail closed for any other unmapped collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

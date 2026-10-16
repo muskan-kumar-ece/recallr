@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "326057321055",
+    "project_id": "recallr-b0bcc",
+    "storage_bucket": "recallr-b0bcc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:326057321055:android:6a680d24059605cb4831ea",
+        "android_client_info": {
+          "package_name": "com.recallr.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "326057321055-o1n4tlmgacp2nqaf2np900m3o1vreig4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.recallr.app",
+            "certificate_hash": "c5ee2ac8f9cb1a35b3f43810333c3bd02f8b535c"
+          }
+        },
+        {
+          "client_id": "326057321055-ja0uaq0fdieg2c5op006l1g30a7m33qp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUE7HBPAR4-wqJqE_IRzXQCzrzFHB_fRU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "326057321055-ja0uaq0fdieg2c5op006l1g30a7m33qp.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "326057321055-7ttgajevcr63tv8drlenlp81hb1hf8no.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.recaller"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

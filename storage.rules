@@ -1,0 +1,38 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to verify user authentication
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to verify user ownership
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Allowed MIME type validator
+    function isAllowedMimeType() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp)')
+          || request.resource.contentType.matches('audio/(m4a|mp4|aac|mpeg|wav|webm)')
+          || request.resource.contentType == 'application/pdf';
+    }
+
+    // File size constraint (Max 25 MB)
+    function isWithinSizeLimit() {
+      return request.resource.size <= 25 * 1024 * 1024;
+    }
+
+    // User capture media: /users/{userId}/captures/{captureId}/{fileName}
+    match /users/{userId}/captures/{captureId}/{fileName} {
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isAllowedMimeType() && isWithinSizeLimit();
+    }
+
+    // Fail closed for all other unmapped paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

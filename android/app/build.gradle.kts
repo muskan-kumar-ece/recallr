@@ -1,3 +1,7 @@
+import java.io.File
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -31,9 +35,9 @@ android {
     }
 
     val keystorePropertiesFile = rootProject.file("key.properties")
-    val keystoreProperties = java.util.Properties()
+    val keystoreProperties = Properties()
     if (keystorePropertiesFile.exists()) {
-        keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
     }
 
     val releaseStoreFile = System.getenv("RELEASE_STORE_FILE") ?: keystoreProperties.getProperty("storeFile")
@@ -41,7 +45,23 @@ android {
     val releaseKeyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: keystoreProperties.getProperty("keyAlias")
     val releaseKeyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: keystoreProperties.getProperty("keyPassword")
 
-    val hasValidReleaseSigning = !releaseStoreFile.isNullOrEmpty() &&
+    val resolvedStoreFile: File? = if (!releaseStoreFile.isNullOrEmpty()) {
+        val rawFile = File(releaseStoreFile)
+        if (rawFile.isAbsolute) {
+            rawFile
+        } else {
+            listOf(
+                rootProject.file(releaseStoreFile),
+                file(releaseStoreFile),
+                rootProject.projectDir.parentFile?.resolve(releaseStoreFile)
+            ).filterNotNull().firstOrNull { it.exists() } ?: rootProject.file(releaseStoreFile)
+        }
+    } else {
+        null
+    }
+
+    val hasValidReleaseSigning = resolvedStoreFile != null &&
+            resolvedStoreFile.exists() &&
             !releaseStorePassword.isNullOrEmpty() &&
             !releaseKeyAlias.isNullOrEmpty() &&
             !releaseKeyPassword.isNullOrEmpty()
@@ -49,7 +69,7 @@ android {
     signingConfigs {
         if (hasValidReleaseSigning) {
             create("release") {
-                storeFile = file(releaseStoreFile)
+                storeFile = resolvedStoreFile
                 storePassword = releaseStorePassword
                 keyAlias = releaseKeyAlias
                 keyPassword = releaseKeyPassword

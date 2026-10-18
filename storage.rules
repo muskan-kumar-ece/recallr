@@ -14,7 +14,7 @@ service firebase.storage {
 
     // Allowed MIME type validator
     function isAllowedMimeType() {
-      return request.resource.contentType.matches('image/(jpeg|png|webp)')
+      return request.resource.contentType.matches('image/(jpeg|jpg|png|webp|heic)')
           || request.resource.contentType.matches('audio/(m4a|mp4|aac|mpeg|wav|webm)')
           || request.resource.contentType == 'application/pdf';
     }

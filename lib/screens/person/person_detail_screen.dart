@@ -258,6 +258,71 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     );
   }
 
+  Future<void> _handleDeletePerson(PersonProfile profile) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: RecallrColors.charcoalCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: RecallrRadii.radiusLg,
+          side: const BorderSide(color: RecallrColors.borderSubtle),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline_rounded, color: RecallrColors.crimsonAlert, size: 22),
+            const SizedBox(width: 8),
+            Text('Delete Contact', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to remove ${profile.name} from your people directory? This action cannot be undone.',
+          style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: RecallrColors.textTertiary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
+              foregroundColor: RecallrColors.crimsonAlert,
+              elevation: 0,
+              side: const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        final peopleRepo = mounted ? context.peopleRepo : RecallrDependencies.instance.peopleRepository;
+        await peopleRepo.deletePerson(profile.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Removed ${profile.name} from directory'),
+              backgroundColor: RecallrColors.slateSurface,
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete contact: $e'),
+              backgroundColor: RecallrColors.crimsonAlert,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildMobileLayout(PersonProfile profile) {
     final bool isPartial = profile.timeline.isEmpty && profile.memories.isEmpty && profile.aiSummary.isNotEmpty;
     final unified = (mounted ? context.unifiedRelationshipIntelligence : RecallrDependencies.instance.unifiedRelationshipIntelligenceService)
@@ -269,6 +334,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           child: PersonProfileHeader(
             profile: profile,
             onBack: () => Navigator.of(context).pop(),
+            onDelete: () => _handleDeletePerson(profile),
           ),
         ),
         SliverPadding(
@@ -332,6 +398,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           child: PersonProfileHeader(
             profile: profile,
             onBack: () => Navigator.of(context).pop(),
+            onDelete: () => _handleDeletePerson(profile),
           ),
         ),
         SliverPadding(

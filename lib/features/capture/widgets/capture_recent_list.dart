@@ -7,11 +7,13 @@ import '../models/capture_models.dart';
 class CaptureRecentList extends StatelessWidget {
   final List<CaptureItem> items;
   final ValueChanged<CaptureItem> onTapItem;
+  final ValueChanged<CaptureItem>? onDeleteItem;
 
   const CaptureRecentList({
     super.key,
     required this.items,
     required this.onTapItem,
+    this.onDeleteItem,
   });
 
   String _getInitials(String name) {
@@ -168,11 +170,22 @@ class CaptureRecentList extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 11.0,
-                          color: RecallrColors.textTertiary,
-                        ),
+                        if (onDeleteItem != null)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 16.0,
+                              color: RecallrColors.textTertiary,
+                            ),
+                            tooltip: 'Delete Capture',
+                            onPressed: () => onDeleteItem!(item),
+                          )
+                        else
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 11.0,
+                            color: RecallrColors.textTertiary,
+                          ),
                       ],
                     ),
                   ),

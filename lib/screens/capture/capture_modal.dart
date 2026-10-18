@@ -613,13 +613,136 @@ class _CaptureModalState extends State<CaptureModal> {
       }
     } catch (e) {
       if (mounted) {
+        final errText = e.toString().toLowerCase();
+        final isStorageIssue = errText.contains('storage') ||
+            errText.contains('bucket') ||
+            errText.contains('object-not-found') ||
+            errText.contains('not-found');
         setState(() {
           _state = CaptureState.error;
-          _errorMessage = 'Failed to save capture. Please try again.';
+          _errorMessage = isStorageIssue
+              ? 'Could not upload media to Cloud Storage. Please ensure Firebase Storage is initialized in Firebase Console, or save contact details directly.'
+              : 'Failed to save capture. Please try again.';
         });
       }
     } finally {
       _isSaving = false;
+    }
+  }
+
+  Future<void> _saveWithoutStorage() async {
+    if (_reviewData == null || _activeType == null) return;
+    setState(() {
+      _state = CaptureState.saving;
+    });
+
+    final captureId = 'cap_${DateTime.now().millisecondsSinceEpoch}';
+    final item = CaptureItem(
+      id: captureId,
+      type: _activeType!,
+      title: _reviewData!.title,
+      description: _reviewData!.summary,
+      timestamp: 'Just now',
+      personName: _reviewData!.personName,
+      personRole: _reviewData!.personRole,
+      companyName: _reviewData!.companyName,
+      eventName: _reviewData!.eventName,
+      location: _reviewData!.location,
+      targetRoute: '/captures/$captureId',
+      isVerified: true,
+      mediaUrl: null,
+      storagePath: null,
+      mimeType: _pickedMediaFile?.mimeType,
+      fileSize: _pickedMediaFile?.size,
+      localFilePath: _pickedMediaFile?.path,
+      durationSeconds: _recordedAudioFile?.duration.inSeconds ??
+          (_voiceDurationSeconds > 0 ? _voiceDurationSeconds : null),
+      processingStatus: CaptureProcessingStatus.pending,
+      createdAt: DateTime.now(),
+    );
+
+    try {
+      final savedItem = await _captureRepo.saveCapture(item);
+      if (widget.onSaved != null) {
+        widget.onSaved!(savedItem);
+      }
+      if (mounted) {
+        setState(() {
+          _savedItem = savedItem;
+          _state = CaptureState.saved;
+        });
+        _processSavedItem(savedItem);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _state = CaptureState.error;
+          _errorMessage = 'Could not save capture to database: $e';
+        });
+      }
+    }
+  }
+
+  Future<void> _handleDeleteRecentCapture(CaptureItem item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: RecallrColors.charcoalCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: RecallrRadii.radiusLg,
+          side: const BorderSide(color: RecallrColors.borderSubtle),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline_rounded, color: RecallrColors.crimsonAlert, size: 22),
+            const SizedBox(width: 8),
+            Text('Delete Capture', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
+          ],
+        ),
+        content: Text(
+          'Delete "${item.title}"? This cannot be undone.',
+          style: const TextStyle(color: RecallrColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: RecallrColors.textTertiary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
+              foregroundColor: RecallrColors.crimsonAlert,
+              elevation: 0,
+              side: const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await _captureRepo.deleteCapture(item.id);
+        if (mounted) {
+          setState(() {
+            _recentCaptures.removeWhere((c) => c.id == item.id);
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Capture deleted'),
+              backgroundColor: RecallrColors.slateSurface,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete capture: $e'), backgroundColor: RecallrColors.crimsonAlert),
+          );
+        }
+      }
     }
   }
 
@@ -710,6 +833,7 @@ class _CaptureModalState extends State<CaptureModal> {
         if (_recentCaptures.isNotEmpty && !widget.isEmpty)
           CaptureRecentList(
             items: _recentCaptures,
+            onDeleteItem: _handleDeleteRecentCapture,
             onTapItem: (item) {
               final nav = Navigator.of(context);
               if (nav.canPop()) {
@@ -815,6 +939,10 @@ class _CaptureModalState extends State<CaptureModal> {
       errorMessage: _errorMessage.isNotEmpty
           ? _errorMessage
           : 'Something went wrong while capturing context.',
+      onSecondaryAction: (_reviewData != null && _pickedMediaFile != null)
+          ? _saveWithoutStorage
+          : null,
+      secondaryActionLabel: 'Save Contact Without Cloud Photo',
       onRetry: () {
         // CAP-P1-1: Preserve captured content — do NOT wipe _activeType,
         // _pickedMediaFile, or _recordedAudioFile on retry.

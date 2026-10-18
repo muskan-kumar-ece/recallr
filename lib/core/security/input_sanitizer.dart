@@ -7,8 +7,10 @@ class InputSanitizer {
   /// Default allowed image MIME types.
   static const List<String> defaultImageMimes = [
     'image/jpeg',
+    'image/jpg',
     'image/png',
     'image/webp',
+    'image/heic',
   ];
 
   /// Default allowed audio MIME types.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/widgets/widgets.dart';
 import '../../relationship_intelligence/models/models.dart';
@@ -8,12 +9,58 @@ import '../models/person_item.dart';
 class PersonCard extends StatelessWidget {
   final PersonItem person;
   final UnifiedPersonRelationshipIntelligence? intelligence;
+  final VoidCallback? onDelete;
 
   const PersonCard({
     super.key,
     required this.person,
     this.intelligence,
+    this.onDelete,
   });
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: RecallrColors.charcoalCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: RecallrRadii.radiusLg,
+          side: const BorderSide(color: RecallrColors.borderSubtle),
+        ),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_outline_rounded, color: RecallrColors.crimsonAlert, size: 22),
+            const SizedBox(width: 8),
+            Text('Delete Contact', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to remove ${person.name} from your people directory? This action cannot be undone.',
+          style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel', style: TextStyle(color: RecallrColors.textTertiary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
+              foregroundColor: RecallrColors.crimsonAlert,
+              elevation: 0,
+              side: const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && onDelete != null) {
+      onDelete!();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +70,7 @@ class PersonCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Top Row: Avatar + Name/Role + Last Contacted
+          // Top Row: Avatar + Name/Role + Last Contacted + 3-dots Menu
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -119,8 +166,122 @@ class PersonCard extends StatelessWidget {
                   ],
                 ),
               ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, size: 18.0, color: RecallrColors.textTertiary),
+                color: RecallrColors.charcoalCard,
+                shape: RoundedRectangleBorder(
+                  borderRadius: RecallrRadii.radiusMd,
+                  side: const BorderSide(color: RecallrColors.borderSubtle),
+                ),
+                onSelected: (val) {
+                  if (val == 'view') {
+                    Navigator.of(context).pushNamed(person.targetRoute);
+                  } else if (val == 'delete') {
+                    _confirmDelete(context);
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'view',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.visibility_outlined, size: 16.0, color: RecallrColors.textSecondary),
+                        const SizedBox(width: 8.0),
+                        Text('View Dossier', style: RecallrTypography.bodyMedium),
+                      ],
+                    ),
+                  ),
+                  if (onDelete != null)
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.delete_outline_rounded, size: 16.0, color: RecallrColors.crimsonAlert),
+                          const SizedBox(width: 8.0),
+                          Text('Delete Contact', style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.crimsonAlert)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
+
+          // Direct Contact Info: Phone & Email
+          if ((person.phone != null && person.phone!.isNotEmpty) ||
+              (person.email != null && person.email!.isNotEmpty)) ...[
+            RecallrSpacing.gapSm,
+            Wrap(
+              spacing: 8.0,
+              runSpacing: 4.0,
+              children: [
+                if (person.phone != null && person.phone!.isNotEmpty)
+                  InkWell(
+                    borderRadius: RecallrRadii.radiusSm,
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: person.phone!));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Copied phone: ${person.phone!}')),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.5),
+                      decoration: BoxDecoration(
+                        color: RecallrColors.slateSurface,
+                        borderRadius: RecallrRadii.radiusSm,
+                        border: Border.all(color: RecallrColors.borderSubtle, width: 0.8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.phone_outlined, size: 12.0, color: RecallrColors.aiCyanHighlight),
+                          const SizedBox(width: 4.0),
+                          Text(
+                            person.phone!,
+                            style: RecallrTypography.labelSmall.copyWith(
+                              color: RecallrColors.textSecondary,
+                              fontSize: 11.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (person.email != null && person.email!.isNotEmpty)
+                  InkWell(
+                    borderRadius: RecallrRadii.radiusSm,
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: person.email!));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Copied email: ${person.email!}')),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.5),
+                      decoration: BoxDecoration(
+                        color: RecallrColors.slateSurface,
+                        borderRadius: RecallrRadii.radiusSm,
+                        border: Border.all(color: RecallrColors.borderSubtle, width: 0.8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.email_outlined, size: 12.0, color: RecallrColors.aiElectricViolet),
+                          const SizedBox(width: 4.0),
+                          Text(
+                            person.email!,
+                            style: RecallrTypography.labelSmall.copyWith(
+                              color: RecallrColors.textSecondary,
+                              fontSize: 11.0,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
 
           // Context Snippet / Encounter Location
           if (person.contextSnippet != null || person.locationOrEvent != null) ...[

@@ -12,6 +12,7 @@ import '../../features/people/widgets/person_card.dart';
 import '../../features/people/widgets/recently_interacted.dart';
 import '../../features/relationship_intelligence/models/models.dart';
 import '../../repositories/people_repository.dart';
+import '../capture/capture_modal.dart';
 
 /// Phase 06 & Phase 13G: People / Relationship Directory Screen.
 /// Cleanly wired to FirestorePeopleRepository without mock data fallbacks.
@@ -47,6 +48,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
   late TextEditingController _searchController;
   String _searchQuery = '';
   PeopleFilterOption _selectedFilter = PeopleFilterOption.all;
+  PeopleSortOption _selectedSort = PeopleSortOption.recent;
   StreamSubscription<List<PersonItem>>? _peopleSubscription;
   StreamSubscription<List<PersonItem>>? _recentSubscription;
   StreamSubscription<RelationshipIntelligenceSnapshot>? _snapshotSubscription;
@@ -222,8 +224,42 @@ class _PeopleScreenState extends State<PeopleScreen> {
     });
   }
 
+  void _handleAddPerson() {
+    RecallrBottomSheet.show(
+      context: context,
+      child: const CaptureModal(),
+    );
+  }
+
+  Future<void> _handleDeletePerson(PersonItem person) async {
+    try {
+      await _repository.deletePerson(person.id);
+      if (mounted) {
+        setState(() {
+          _allPeople.removeWhere((p) => p.id == person.id);
+          _recentlyInteracted.removeWhere((p) => p.id == person.id);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Removed ${person.name} from directory'),
+            backgroundColor: RecallrColors.slateSurface,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete contact: $e'),
+            backgroundColor: RecallrColors.crimsonAlert,
+          ),
+        );
+      }
+    }
+  }
+
   List<PersonItem> get _filteredPeople {
-    return _allPeople.where((person) {
+    final list = _allPeople.where((person) {
       if (!_selectedFilter.matches(person)) {
         return false;
       }
@@ -232,12 +268,16 @@ class _PeopleScreenState extends State<PeopleScreen> {
         final matchesName = person.name.toLowerCase().contains(query);
         final matchesCompany = person.company.toLowerCase().contains(query);
         final matchesRole = person.role.toLowerCase().contains(query);
+        final matchesPhone = person.phone?.toLowerCase().contains(query) ?? false;
+        final matchesEmail = person.email?.toLowerCase().contains(query) ?? false;
         final matchesContext = person.contextSnippet?.toLowerCase().contains(query) ?? false;
         final matchesCapabilities = person.capabilities.any((c) => c.toLowerCase().contains(query));
 
         if (!matchesName &&
             !matchesCompany &&
             !matchesRole &&
+            !matchesPhone &&
+            !matchesEmail &&
             !matchesContext &&
             !matchesCapabilities) {
           return false;
@@ -245,6 +285,27 @@ class _PeopleScreenState extends State<PeopleScreen> {
       }
       return true;
     }).toList();
+
+    switch (_selectedSort) {
+      case PeopleSortOption.recent:
+        list.sort((a, b) {
+          final aDate = a.lastInteractionDate ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate = b.lastInteractionDate ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          return bDate.compareTo(aDate);
+        });
+        break;
+      case PeopleSortOption.nameAsc:
+        list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case PeopleSortOption.nameDesc:
+        list.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        break;
+      case PeopleSortOption.interactions:
+        list.sort((a, b) => b.interactionCount.compareTo(a.interactionCount));
+        break;
+    }
+
+    return list;
   }
 
   @override
@@ -323,11 +384,16 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   Widget _buildMobileLayout(List<PersonItem> filtered) {
+    final bool hasFilterOrSearch = _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
+
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: PeopleHeader(
             count: filtered.length,
+            sortOption: _selectedSort,
+            onSortChanged: (opt) => setState(() => _selectedSort = opt),
+            onAddPerson: _handleAddPerson,
           ),
         ),
         SliverToBoxAdapter(
@@ -352,6 +418,19 @@ class _PeopleScreenState extends State<PeopleScreen> {
             ),
           ),
         ),
+        if (hasFilterOrSearch)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              child: Text(
+                'Showing ${filtered.length} of ${_allPeople.length} contacts',
+                style: RecallrTypography.monoMetadata.copyWith(
+                  color: RecallrColors.textTertiary,
+                  fontSize: 11.0,
+                ),
+              ),
+            ),
+          ),
         if (_recentlyInteracted.isNotEmpty && _searchQuery.isEmpty && _selectedFilter == PeopleFilterOption.all)
           SliverToBoxAdapter(
             child: RecentlyInteractedSection(
@@ -378,7 +457,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: PersonCard(
                       person: person,
-                      intelligence: widget.initialSnapshot?.getPerson(person.id),
+                      intelligence: (_snapshot ?? widget.initialSnapshot)?.getPerson(person.id),
+                      onDelete: () => _handleDeletePerson(person),
                     ),
                   );
                 },
@@ -394,11 +474,16 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   Widget _buildWideLayout(List<PersonItem> filtered) {
+    final bool hasFilterOrSearch = _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
+
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: PeopleHeader(
             count: filtered.length,
+            sortOption: _selectedSort,
+            onSortChanged: (opt) => setState(() => _selectedSort = opt),
+            onAddPerson: _handleAddPerson,
           ),
         ),
         SliverToBoxAdapter(
@@ -423,6 +508,19 @@ class _PeopleScreenState extends State<PeopleScreen> {
             ),
           ),
         ),
+        if (hasFilterOrSearch)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              child: Text(
+                'Showing ${filtered.length} of ${_allPeople.length} contacts',
+                style: RecallrTypography.monoMetadata.copyWith(
+                  color: RecallrColors.textTertiary,
+                  fontSize: 11.0,
+                ),
+              ),
+            ),
+          ),
         if (_recentlyInteracted.isNotEmpty && _searchQuery.isEmpty && _selectedFilter == PeopleFilterOption.all)
           SliverToBoxAdapter(
             child: RecentlyInteractedSection(
@@ -450,6 +548,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
                     child: PersonCard(
                       person: person,
                       intelligence: (_snapshot ?? widget.initialSnapshot)?.getPerson(person.id),
+                      onDelete: () => _handleDeletePerson(person),
                     ),
                   );
                 },

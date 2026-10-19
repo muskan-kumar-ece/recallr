@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../core/widgets/widgets.dart';
 import '../services/auth_service.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -195,14 +196,15 @@ class _AuthScreenState extends State<AuthScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Header
-                      Icon(
-                        Icons.lock_person_rounded,
-                        size: 48,
-                        color: theme.colorScheme.primary,
+                      const Center(
+                        child: RecallrBrandLogo(
+                          size: 56.0,
+                          showWordmark: true,
+                        ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
                       Text(
-                        _isSignUp ? 'Create Account' : 'Welcome to Recaller',
+                        _isSignUp ? 'Create Account' : 'Welcome to Recallr',
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),

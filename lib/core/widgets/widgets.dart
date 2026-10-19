@@ -28,3 +28,6 @@ export 'states/recallr_skeleton.dart';
 export 'states/recallr_empty_state.dart';
 export 'states/recallr_error_state.dart';
 export 'states/recallr_offline_indicator.dart';
+
+// Brand Identity
+export 'brand/recallr_brand_logo.dart';

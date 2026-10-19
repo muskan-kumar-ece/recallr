@@ -266,7 +266,14 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
         : (widget.user?.email?.isNotEmpty == true ? widget.user!.email!.substring(0, 1) : 'U');
 
     return AppBar(
-      title: Text(_currentTitle),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const RecallrBrandLogo(size: 26.0),
+          const SizedBox(width: 10.0),
+          Text(_currentTitle),
+        ],
+      ),
       actions: [
         RecallrIconButton(
           icon: Icons.search_rounded,

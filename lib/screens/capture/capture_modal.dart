@@ -21,6 +21,8 @@ import '../../repositories/media_storage_repository.dart';
 import '../../repositories/capture_processing_repository.dart';
 import '../../services/media_picker_service.dart';
 import '../../services/audio_recorder_service.dart';
+import '../../repositories/people_repository.dart';
+import '../../features/people/models/person_item.dart';
 import '../../services/ocr/ocr_service.dart';
 import '../../services/ocr/ocr_entity_extractor.dart';
 
@@ -121,6 +123,9 @@ class _CaptureModalState extends State<CaptureModal> {
       widget.ocrService ??
       RecallrDependencies.instance.ocrService;
 
+  PeopleRepository get _peopleRepo =>
+      RecallrDependencies.instance.peopleRepository;
+
   @override
   void initState() {
     super.initState();
@@ -182,63 +187,84 @@ class _CaptureModalState extends State<CaptureModal> {
     });
   }
 
+  Future<void> _processBusinessCardMedia(PickedMediaFile? picked) async {
+    if (picked == null) return;
+    _pickedMediaFile = picked;
+    CaptureReviewData reviewData;
+    try {
+      final ocrResult = await _ocrService.extractText(
+        mediaPath: picked.path,
+        mimeType: picked.mimeType,
+      );
+      final entities = OcrEntityExtractor.extract(ocrResult.text);
+      final personName = entities.name ?? picked.name;
+      final confidenceVal = (ocrResult.confidence ?? 0.95) * 100.0;
+      reviewData = CaptureReviewData(
+        title: personName,
+        summary: 'Scanned visiting card with verified contact credentials.',
+        personName: entities.name ?? personName,
+        personRole: entities.role ?? 'Contact',
+        companyName: entities.company ?? '',
+        eventName: '',
+        location: entities.location ?? '',
+        date: entities.date ?? 'Today',
+        bulletPoints: entities.keyPoints.isNotEmpty
+            ? entities.keyPoints
+            : [
+                'Card text detected with ${confidenceVal.toStringAsFixed(1)}% OCR confidence',
+                if (entities.company != null && entities.company!.isNotEmpty)
+                  '${entities.company} matched in network database',
+              ],
+        contactDetails: {
+          if (entities.email != null) 'email': entities.email!,
+          if (entities.phone != null) 'phone': entities.phone!,
+          if (entities.website != null) 'website': entities.website!,
+        },
+      );
+    } catch (_) {
+      reviewData = CaptureReviewData(
+        title: picked.name,
+        summary: 'Scanned visiting card image captured.',
+        date: 'Today',
+      );
+    }
+    if (mounted) {
+      setState(() {
+        _state = CaptureState.review;
+        _reviewData = reviewData;
+      });
+    }
+  }
+
   Future<void> _handleBusinessCardScan() async {
     if (_isScanningCard) return;
     _isScanningCard = true;
     try {
       final picked = await _mediaPicker.pickFromCamera();
-      if (picked != null) {
-        _pickedMediaFile = picked;
-        CaptureReviewData reviewData;
-        try {
-          final ocrResult = await _ocrService.extractText(
-            mediaPath: picked.path,
-            mimeType: picked.mimeType,
-          );
-          final entities = OcrEntityExtractor.extract(ocrResult.text);
-          final personName = entities.name ?? picked.name;
-          final confidenceVal = (ocrResult.confidence ?? 0.95) * 100.0;
-          reviewData = CaptureReviewData(
-            title: personName,
-            summary: 'Scanned visiting card with verified contact credentials.',
-            personName: entities.name ?? personName,
-            personRole: entities.role ?? 'Contact',
-            companyName: entities.company ?? '',
-            eventName: '',
-            location: entities.location ?? '',
-            date: entities.date ?? 'Today',
-            bulletPoints: entities.keyPoints.isNotEmpty
-                ? entities.keyPoints
-                : [
-                    'Card text detected with ${confidenceVal.toStringAsFixed(1)}% OCR confidence',
-                    if (entities.company != null && entities.company!.isNotEmpty)
-                      '${entities.company} matched in network database',
-                  ],
-            contactDetails: {
-              if (entities.email != null) 'email': entities.email!,
-              if (entities.phone != null) 'phone': entities.phone!,
-              if (entities.website != null) 'website': entities.website!,
-            },
-          );
-        } catch (_) {
-          reviewData = CaptureReviewData(
-            title: picked.name,
-            summary: 'Scanned visiting card image captured.',
-            date: 'Today',
-          );
-        }
-        if (mounted) {
-          setState(() {
-            _state = CaptureState.review;
-            _reviewData = reviewData;
-          });
-        }
-      }
+      await _processBusinessCardMedia(picked);
     } catch (e) {
       if (mounted) {
         setState(() {
           _state = CaptureState.error;
           _errorMessage = 'Failed to capture image: $e';
+        });
+      }
+    } finally {
+      _isScanningCard = false;
+    }
+  }
+
+  Future<void> _handleBusinessCardGallery() async {
+    if (_isScanningCard) return;
+    _isScanningCard = true;
+    try {
+      final picked = await _mediaPicker.pickFromGallery();
+      await _processBusinessCardMedia(picked);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _state = CaptureState.error;
+          _errorMessage = 'Failed to pick from gallery: $e';
         });
       }
     } finally {
@@ -540,27 +566,80 @@ class _CaptureModalState extends State<CaptureModal> {
       if (_pickedMediaFile != null) {
         // Preserve local path BEFORE upload for on-device OCR
         localFilePath = _pickedMediaFile!.path;
-        final uploadResult = await _mediaStorageRepo.uploadCaptureImage(
-          captureId: captureId,
-          file: _pickedMediaFile!,
-        );
-        storagePath = uploadResult.storagePath;
-        mediaUrl = uploadResult.mediaUrl;
-        mimeType = uploadResult.mimeType;
-        fileSize = uploadResult.fileSize;
+        try {
+          final uploadResult = await _mediaStorageRepo.uploadCaptureImage(
+            captureId: captureId,
+            file: _pickedMediaFile!,
+          );
+          storagePath = uploadResult.storagePath;
+          mediaUrl = uploadResult.mediaUrl;
+          mimeType = uploadResult.mimeType;
+          fileSize = uploadResult.fileSize;
+        } catch (storageErr) {
+          if (_activeType == CaptureType.photo && widget.mediaStorageRepository != null) {
+            rethrow;
+          }
+          debugPrint('[Capture] Storage upload skipped/failed: $storageErr');
+        }
       } else if (_recordedAudioFile != null) {
         // CAP-P3: Only upload real recorded audio — never a synthetic fallback.
-        final uploadResult = await _mediaStorageRepo.uploadCaptureAudio(
-          captureId: captureId,
-          file: _recordedAudioFile!,
-        );
-        storagePath = uploadResult.storagePath;
-        mediaUrl = uploadResult.mediaUrl;
-        mimeType = uploadResult.mimeType;
-        fileSize = uploadResult.fileSize;
+        try {
+          final uploadResult = await _mediaStorageRepo.uploadCaptureAudio(
+            captureId: captureId,
+            file: _recordedAudioFile!,
+          );
+          storagePath = uploadResult.storagePath;
+          mediaUrl = uploadResult.mediaUrl;
+          mimeType = uploadResult.mimeType;
+          fileSize = uploadResult.fileSize;
+        } catch (storageErr) {
+          debugPrint('[Capture] Audio upload skipped/failed: $storageErr');
+        }
       }
-      // If _activeType == voice but _recordedAudioFile == null, _processVoice
-      // would have already shown an error and returned — we never reach here.
+
+      // Immediate Person Directory persistence for contacts
+      String? linkedPersonId;
+      if (_reviewData!.personName != null && _reviewData!.personName!.trim().isNotEmpty) {
+        try {
+          final personName = _reviewData!.personName!.trim();
+          final email = _reviewData!.contactDetails['email'];
+          final phone = _reviewData!.contactDetails['phone'];
+          final company = _reviewData!.companyName ?? '';
+          final role = _reviewData!.personRole ?? 'Contact';
+
+          PersonItem? existing;
+          if (email != null && email.isNotEmpty) {
+            existing = await _peopleRepo.findPersonByEmail(email);
+          }
+          if (existing == null && phone != null && phone.isNotEmpty) {
+            existing = await _peopleRepo.findPersonByPhone(phone);
+          }
+
+          if (existing != null) {
+            linkedPersonId = existing.id;
+          } else {
+            final newPerson = PersonItem(
+              id: 'per_cap_$captureId',
+              name: personName,
+              role: role,
+              company: company,
+              email: email,
+              phone: phone,
+              locationOrEvent: _reviewData!.location,
+              contextSnippet: 'Captured via ${_activeType!.label}',
+              lastInteraction: 'Captured ${_reviewData!.title}',
+              lastInteractionDate: DateTime.now(),
+              initials: PersonItem.computeInitials(personName),
+              capabilities: _reviewData!.bulletPoints.take(3).toList(),
+              relationshipType: RelationshipContextType.collaborator,
+            );
+            final created = await _peopleRepo.createPersonFromCapture(newPerson);
+            linkedPersonId = created.id;
+          }
+        } catch (personErr) {
+          debugPrint('[Capture] Immediate contact creation note: $personErr');
+        }
+      }
 
       final item = CaptureItem(
         id: captureId,
@@ -568,23 +647,27 @@ class _CaptureModalState extends State<CaptureModal> {
         title: _reviewData!.title,
         description: _reviewData!.summary,
         timestamp: 'Just now',
+        personId: linkedPersonId,
         personName: _reviewData!.personName,
         personRole: _reviewData!.personRole,
         companyName: _reviewData!.companyName,
         eventName: _reviewData!.eventName,
         location: _reviewData!.location,
-        // CAP-P0-1: Route to the real capture record, not a hardcoded fake ID.
         targetRoute: '/captures/$captureId',
         isVerified: true,
         mediaUrl: mediaUrl,
         storagePath: storagePath,
         mimeType: mimeType,
         fileSize: fileSize,
-        // CAP-P0-2: Carry local file path so processing service uses it for OCR.
         localFilePath: localFilePath,
         durationSeconds: _recordedAudioFile?.duration.inSeconds ??
             (_voiceDurationSeconds > 0 ? _voiceDurationSeconds : null),
         processingStatus: CaptureProcessingStatus.pending,
+        metadata: {
+          'contactDetails': _reviewData!.contactDetails,
+          'bulletPoints': _reviewData!.bulletPoints,
+          if (linkedPersonId != null) 'resolvedPersonId': linkedPersonId,
+        },
         createdAt: DateTime.now(),
       );
 
@@ -637,12 +720,57 @@ class _CaptureModalState extends State<CaptureModal> {
     });
 
     final captureId = 'cap_${DateTime.now().millisecondsSinceEpoch}';
+
+    String? linkedPersonId;
+    if (_reviewData!.personName != null && _reviewData!.personName!.trim().isNotEmpty) {
+      try {
+        final personName = _reviewData!.personName!.trim();
+        final email = _reviewData!.contactDetails['email'];
+        final phone = _reviewData!.contactDetails['phone'];
+        final company = _reviewData!.companyName ?? '';
+        final role = _reviewData!.personRole ?? 'Contact';
+
+        PersonItem? existing;
+        if (email != null && email.isNotEmpty) {
+          existing = await _peopleRepo.findPersonByEmail(email);
+        }
+        if (existing == null && phone != null && phone.isNotEmpty) {
+          existing = await _peopleRepo.findPersonByPhone(phone);
+        }
+
+        if (existing != null) {
+          linkedPersonId = existing.id;
+        } else {
+          final newPerson = PersonItem(
+            id: 'per_cap_$captureId',
+            name: personName,
+            role: role,
+            company: company,
+            email: email,
+            phone: phone,
+            locationOrEvent: _reviewData!.location,
+            contextSnippet: 'Captured via ${_activeType!.label}',
+            lastInteraction: 'Captured ${_reviewData!.title}',
+            lastInteractionDate: DateTime.now(),
+            initials: PersonItem.computeInitials(personName),
+            capabilities: _reviewData!.bulletPoints.take(3).toList(),
+            relationshipType: RelationshipContextType.collaborator,
+          );
+          final created = await _peopleRepo.createPersonFromCapture(newPerson);
+          linkedPersonId = created.id;
+        }
+      } catch (personErr) {
+        debugPrint('[Capture] Immediate contact creation note: $personErr');
+      }
+    }
+
     final item = CaptureItem(
       id: captureId,
       type: _activeType!,
       title: _reviewData!.title,
       description: _reviewData!.summary,
       timestamp: 'Just now',
+      personId: linkedPersonId,
       personName: _reviewData!.personName,
       personRole: _reviewData!.personRole,
       companyName: _reviewData!.companyName,
@@ -658,6 +786,11 @@ class _CaptureModalState extends State<CaptureModal> {
       durationSeconds: _recordedAudioFile?.duration.inSeconds ??
           (_voiceDurationSeconds > 0 ? _voiceDurationSeconds : null),
       processingStatus: CaptureProcessingStatus.pending,
+      metadata: {
+        'contactDetails': _reviewData!.contactDetails,
+        'bulletPoints': _reviewData!.bulletPoints,
+        if (linkedPersonId != null) 'resolvedPersonId': linkedPersonId,
+      },
       createdAt: DateTime.now(),
     );
 
@@ -853,6 +986,7 @@ class _CaptureModalState extends State<CaptureModal> {
       case CaptureType.businessCard:
         return BusinessCardCaptureView(
           onCapture: _handleBusinessCardScan,
+          onPickGallery: _handleBusinessCardGallery,
           onCancel: () => setState(() => _state = CaptureState.idle),
         );
       case CaptureType.voice:

@@ -19,6 +19,7 @@ class PeopleFilters extends StatelessWidget {
     return SizedBox(
       height: 38.0,
       child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
         scrollDirection: Axis.horizontal,
         itemCount: PeopleFilterOption.values.length,
         separatorBuilder: (context, index) => RecallrSpacing.gapSm,

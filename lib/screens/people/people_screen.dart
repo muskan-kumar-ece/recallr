@@ -383,6 +383,64 @@ class _PeopleScreenState extends State<PeopleScreen> {
     );
   }
 
+  Widget _buildSortMenuButton() {
+    return PopupMenuButton<PeopleSortOption>(
+      initialValue: _selectedSort,
+      onSelected: (opt) => setState(() => _selectedSort = opt),
+      color: RecallrColors.charcoalCard,
+      tooltip: 'Sort contacts',
+      shape: RoundedRectangleBorder(
+        borderRadius: RecallrRadii.radiusMd,
+        side: const BorderSide(color: RecallrColors.borderSubtle),
+      ),
+      child: Container(
+        height: 44.0,
+        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        decoration: BoxDecoration(
+          color: RecallrColors.slateSurface,
+          borderRadius: RecallrRadii.radiusMd,
+          border: Border.all(color: RecallrColors.borderSubtle, width: 1.0),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_selectedSort.icon, size: 16.0, color: RecallrColors.aiCyanHighlight),
+            const SizedBox(width: 6.0),
+            Text(
+              _selectedSort.label,
+              style: RecallrTypography.labelSmall.copyWith(
+                color: RecallrColors.textSecondary,
+                fontSize: 12.0,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 4.0),
+            const Icon(Icons.arrow_drop_down_rounded, size: 18.0, color: RecallrColors.textTertiary),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => PeopleSortOption.values.map((opt) {
+        final isSelected = opt == _selectedSort;
+        return PopupMenuItem<PeopleSortOption>(
+          value: opt,
+          child: Row(
+            children: [
+              Icon(opt.icon, size: 16.0, color: isSelected ? RecallrColors.aiCyanHighlight : RecallrColors.textSecondary),
+              const SizedBox(width: 8.0),
+              Text(
+                opt.label,
+                style: RecallrTypography.bodyMedium.copyWith(
+                  color: isSelected ? RecallrColors.aiCyanHighlight : RecallrColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildMobileLayout(List<PersonItem> filtered) {
     final bool hasFilterOrSearch = _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
 
@@ -391,27 +449,33 @@ class _PeopleScreenState extends State<PeopleScreen> {
         SliverToBoxAdapter(
           child: PeopleHeader(
             count: filtered.length,
-            sortOption: _selectedSort,
-            onSortChanged: (opt) => setState(() => _selectedSort = opt),
             onAddPerson: _handleAddPerson,
           ),
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: PeopleSearch(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              onClear: () {
-                _searchController.clear();
-                _onSearchChanged('');
-              },
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: PeopleSearch(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    onClear: () {
+                      _searchController.clear();
+                      _onSearchChanged('');
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                _buildSortMenuButton(),
+              ],
             ),
           ),
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
             child: PeopleFilters(
               selectedFilter: _selectedFilter,
               onSelected: _onFilterChanged,
@@ -481,27 +545,33 @@ class _PeopleScreenState extends State<PeopleScreen> {
         SliverToBoxAdapter(
           child: PeopleHeader(
             count: filtered.length,
-            sortOption: _selectedSort,
-            onSortChanged: (opt) => setState(() => _selectedSort = opt),
             onAddPerson: _handleAddPerson,
           ),
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: PeopleSearch(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              onClear: () {
-                _searchController.clear();
-                _onSearchChanged('');
-              },
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: PeopleSearch(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    onClear: () {
+                      _searchController.clear();
+                      _onSearchChanged('');
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8.0),
+                _buildSortMenuButton(),
+              ],
             ),
           ),
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
             child: PeopleFilters(
               selectedFilter: _selectedFilter,
               onSelected: _onFilterChanged,

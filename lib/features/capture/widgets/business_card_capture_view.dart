@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/widgets/widgets.dart';
 
-/// Business card camera scanner simulation view.
+/// Business card camera scanner simulation & gallery upload view.
 class BusinessCardCaptureView extends StatelessWidget {
   final VoidCallback onCapture;
   final VoidCallback onCancel;
+  final VoidCallback? onPickGallery;
 
   const BusinessCardCaptureView({
     super.key,
     required this.onCapture,
     required this.onCancel,
+    this.onPickGallery,
   });
 
   @override
@@ -127,21 +129,31 @@ class BusinessCardCaptureView extends StatelessWidget {
           children: [
             Expanded(
               child: RecallrButton(
-                label: 'Cancel',
-                variant: RecallrButtonVariant.secondary,
-                onPressed: onCancel,
-              ),
-            ),
-            RecallrSpacing.gapSm,
-            Expanded(
-              child: RecallrButton(
                 label: 'Scan & Extract',
                 variant: RecallrButtonVariant.primary,
                 leadingIcon: Icons.camera_alt_rounded,
                 onPressed: onCapture,
               ),
             ),
+            if (onPickGallery != null) ...[
+              RecallrSpacing.gapSm,
+              Expanded(
+                child: RecallrButton(
+                  label: 'From Gallery',
+                  variant: RecallrButtonVariant.secondary,
+                  leadingIcon: Icons.photo_library_outlined,
+                  onPressed: onPickGallery!,
+                ),
+              ),
+            ],
           ],
+        ),
+        RecallrSpacing.gapXs,
+        Center(
+          child: TextButton(
+            onPressed: onCancel,
+            child: const Text('Cancel', style: TextStyle(color: RecallrColors.textTertiary, fontSize: 13.0)),
+          ),
         ),
       ],
     );

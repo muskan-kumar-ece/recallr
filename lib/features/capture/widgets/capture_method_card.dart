@@ -26,9 +26,13 @@ class CaptureMethodCard extends StatelessWidget {
         borderRadius: RecallrRadii.radiusMd,
         child: InkWell(
           borderRadius: RecallrRadii.radiusMd,
+          splashColor: type.color.withAlpha(25),
+          highlightColor: type.color.withAlpha(12),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56.0),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
             child: Row(
               children: [
                 Container(
@@ -83,6 +87,7 @@ class CaptureMethodCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

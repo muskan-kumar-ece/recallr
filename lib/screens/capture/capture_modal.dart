@@ -101,30 +101,30 @@ class _CaptureModalState extends State<CaptureModal> {
   CaptureRepository get _captureRepo =>
       widget.repository ??
       widget.captureRepository ??
-      RecallrDependencies.instance.captureRepository;
+      (mounted ? context.captureRepo : RecallrDependencies.instance.captureRepository);
 
   MediaStorageRepository get _mediaStorageRepo =>
       widget.mediaStorageRepository ??
-      RecallrDependencies.instance.mediaStorageRepository;
+      (mounted ? context.mediaStorageRepo : RecallrDependencies.instance.mediaStorageRepository);
 
   CaptureProcessingRepository? get _captureProcessingRepo =>
       widget.captureProcessingRepository ??
-      RecallrDependencies.instance.captureProcessingRepository;
+      (mounted ? context.dependencies.captureProcessingRepository : RecallrDependencies.instance.captureProcessingRepository);
 
   MediaPickerService get _mediaPicker =>
       widget.mediaPickerService ??
-      RecallrDependencies.instance.mediaPickerService;
+      (mounted ? context.mediaPickerService : RecallrDependencies.instance.mediaPickerService);
 
   AudioRecorderService get _audioRecorder =>
       widget.audioRecorderService ??
-      RecallrDependencies.instance.audioRecorderService;
+      (mounted ? context.audioRecorderService : RecallrDependencies.instance.audioRecorderService);
 
   OcrService get _ocrService =>
       widget.ocrService ??
-      RecallrDependencies.instance.ocrService;
+      (mounted ? context.ocrService : RecallrDependencies.instance.ocrService);
 
   PeopleRepository get _peopleRepo =>
-      RecallrDependencies.instance.peopleRepository;
+      (mounted ? context.peopleRepo : RecallrDependencies.instance.peopleRepository);
 
   @override
   void initState() {
@@ -355,17 +355,71 @@ class _CaptureModalState extends State<CaptureModal> {
       final picked = _pickedMediaFile ?? await _mediaPicker.pickFromGallery();
       _pickedMediaFile = picked;
 
+      String? extractedTitle;
+      String? extractedSummary;
+      String? extractedPersonName;
+      String? extractedRole;
+      String? extractedCompany;
+      String? extractedLocation;
+      List<String> extractedKeyPoints = [];
+      Map<String, String> extractedContactDetails = {};
+
+      if (picked != null) {
+        try {
+          final ocrResult = await _ocrService.extractText(
+            mediaPath: picked.path,
+            mimeType: picked.mimeType,
+          );
+          if (ocrResult.text.trim().isNotEmpty) {
+            final entities = OcrEntityExtractor.extract(ocrResult.text);
+            extractedPersonName = entities.name;
+            extractedRole = entities.role ?? (entities.name != null ? 'Contact' : null);
+            extractedCompany = entities.company;
+            extractedLocation = entities.location;
+            if (entities.email != null) extractedContactDetails['email'] = entities.email!;
+            if (entities.phone != null) extractedContactDetails['phone'] = entities.phone!;
+            if (entities.website != null) extractedContactDetails['website'] = entities.website!;
+
+            extractedKeyPoints = entities.keyPoints.isNotEmpty
+                ? entities.keyPoints
+                : ocrResult.text.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).take(5).toList();
+
+            if (entities.name != null && entities.name!.isNotEmpty) {
+              extractedTitle = entities.name;
+              extractedSummary = 'Photo capture with extracted contact details: ${entities.name}${entities.company != null ? ' at ${entities.company}' : ''}.';
+            } else if (ocrResult.text.trim().isNotEmpty) {
+              final firstLine = ocrResult.text.trim().split('\n').first.trim();
+              if (firstLine.length <= 40) {
+                extractedTitle = firstLine;
+              }
+              extractedSummary = ocrResult.text.trim();
+            }
+          }
+        } catch (e) {
+          debugPrint('[Capture] Optical extraction notice: $e');
+        }
+      }
+
       if (mounted) {
+        final title = _photoTitleController.text.isNotEmpty
+            ? _photoTitleController.text
+            : (extractedTitle ?? (type == CaptureType.photo ? 'Photo Capture' : 'Document Upload'));
+        final summary = _photoNoteController.text.isNotEmpty
+            ? _photoNoteController.text
+            : (extractedSummary ?? (picked != null ? 'Uploaded file (${picked.name}).' : 'Uploaded document context.'));
+
         setState(() {
           _state = CaptureState.review;
           _reviewData = CaptureReviewData(
-            title: _photoTitleController.text.isNotEmpty
-                ? _photoTitleController.text
-                : (type == CaptureType.photo ? 'Photo Capture' : 'Document Upload'),
-            summary: _photoNoteController.text.isNotEmpty
-                ? _photoNoteController.text
-                : (picked != null ? 'Uploaded file (${picked.name}).' : 'Uploaded document context.'),
+            title: title,
+            summary: summary,
+            personName: extractedPersonName,
+            personRole: extractedRole,
+            companyName: extractedCompany,
+            location: extractedLocation,
             date: 'Today',
+            bulletPoints: extractedKeyPoints,
+            contactDetails: extractedContactDetails,
           );
         });
       }
@@ -566,6 +620,8 @@ class _CaptureModalState extends State<CaptureModal> {
       if (_pickedMediaFile != null) {
         // Preserve local path BEFORE upload for on-device OCR
         localFilePath = _pickedMediaFile!.path;
+        mimeType = _pickedMediaFile!.mimeType;
+        fileSize = _pickedMediaFile!.size;
         try {
           final uploadResult = await _mediaStorageRepo.uploadCaptureImage(
             captureId: captureId,
@@ -583,6 +639,8 @@ class _CaptureModalState extends State<CaptureModal> {
         }
       } else if (_recordedAudioFile != null) {
         // CAP-P3: Only upload real recorded audio — never a synthetic fallback.
+        mimeType = _recordedAudioFile!.mimeType;
+        fileSize = _recordedAudioFile!.size;
         try {
           final uploadResult = await _mediaStorageRepo.uploadCaptureAudio(
             captureId: captureId,

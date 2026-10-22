@@ -454,10 +454,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           RecallrSpacing.gapLg,
           const MemorySearchCard(),
-          RecallrSpacing.gapLg,
-          MemoryPulse(stats: stats),
-          RecallrSpacing.gapLg,
-          _buildNetworkHealthCard(context),
+          RecallrSpacing.gapMd,
+          const QuickCaptureTile(),
           RecallrSpacing.gapLg,
           if (relationshipAttentions.isNotEmpty) ...[
             RelationshipAttentionSection(
@@ -483,7 +481,9 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             RecallrSpacing.gapLg,
           ],
-          const QuickCaptureTile(),
+          MemoryPulse(stats: stats),
+          RecallrSpacing.gapLg,
+          _buildNetworkHealthCard(context),
           const SizedBox(height: 80.0),
         ],
       ),
@@ -507,11 +507,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           RecallrSpacing.gapLg,
           const MemorySearchCard(),
-          RecallrSpacing.gapLg,
-          MemoryPulse(stats: stats),
-          RecallrSpacing.gapLg,
-          _buildNetworkHealthCard(context),
-          RecallrSpacing.gapLg,
+          RecallrSpacing.gapMd,
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -520,6 +516,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const QuickCaptureTile(),
+                    RecallrSpacing.gapLg,
                     if (relationshipAttentions.isNotEmpty) ...[
                       RelationshipAttentionSection(
                         attentionItems: relationshipAttentions,
@@ -545,13 +543,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 flex: 4,
                 child: Column(
                   children: [
+                    MemoryPulse(stats: stats),
+                    RecallrSpacing.gapLg,
+                    _buildNetworkHealthCard(context),
+                    RecallrSpacing.gapLg,
                     if (recentPeople.isNotEmpty) ...[
                       RecentPeopleSection(
                         items: recentPeople,
                       ),
-                      RecallrSpacing.gapLg,
                     ],
-                    const QuickCaptureTile(),
                   ],
                 ),
               ),

@@ -56,7 +56,7 @@ void main() {
     });
 
     test('5. Storage rules enforce MIME type whitelist for images, audio, and documents', () {
-      expect(storageRules.contains('image/(jpeg|png|webp)'), isTrue);
+      expect(storageRules.contains('image/(jpeg|jpg|png|webp|heic)'), isTrue);
       expect(storageRules.contains('audio/(m4a|mp4|aac|mpeg|wav|webm)'), isTrue);
       expect(storageRules.contains("contentType == 'application/pdf'"), isTrue);
     });

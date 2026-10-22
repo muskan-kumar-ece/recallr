@@ -225,6 +225,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
             final width = constraints.maxWidth;
             final isMobile = width < kTabletBreakpoint;
             final isDesktop = width >= kDesktopBreakpoint;
+            final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+            final showFab = isMobile && _selectedIndex != 2 && !keyboardOpen;
 
             return Scaffold(
               backgroundColor: RecallrColors.obsidianBase,
@@ -249,9 +251,9 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                   ),
                 ],
               ),
-              floatingActionButton: isMobile ? _buildCaptureFab() : null,
-              floatingActionButtonLocation: isMobile ? FloatingActionButtonLocation.centerDocked : null,
-              bottomNavigationBar: isMobile ? _buildBottomNavBar() : null,
+              floatingActionButton: showFab ? _buildCaptureFab() : null,
+              floatingActionButtonLocation: showFab ? FloatingActionButtonLocation.centerDocked : null,
+              bottomNavigationBar: isMobile ? _buildBottomNavBar(showFab: showFab) : null,
             );
           },
         ),
@@ -265,13 +267,17 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
         ? widget.user!.displayName!.substring(0, 1)
         : (widget.user?.email?.isNotEmpty == true ? widget.user!.email!.substring(0, 1) : 'U');
 
+    final isHome = _selectedIndex == 0;
+
     return AppBar(
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const RecallrBrandLogo(size: 26.0),
-          const SizedBox(width: 10.0),
-          Text(_currentTitle),
+          RecallrBrandLogo(size: 26.0, showWordmark: isHome),
+          if (!isHome) ...[
+            const SizedBox(width: 10.0),
+            Text(_currentTitle),
+          ],
         ],
       ),
       actions: [
@@ -404,7 +410,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     );
   }
 
-  Widget _buildBottomNavBar() {
+  Widget _buildBottomNavBar({required bool showFab}) {
     return Container(
       decoration: const BoxDecoration(
         border: Border(
@@ -413,8 +419,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
       ),
       child: BottomAppBar(
         color: RecallrColors.slateSurface,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
+        shape: showFab ? const CircularNotchedRectangle() : null,
+        notchMargin: showFab ? 8.0 : 0.0,
         elevation: 0,
         padding: EdgeInsets.zero,
         child: SizedBox(
@@ -424,7 +430,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
             children: [
               _buildNavItem(0),
               _buildNavItem(1),
-              const SizedBox(width: 48.0), // Space for center FAB
+              if (showFab) const SizedBox(width: 48.0), // Space for center FAB
               _buildNavItem(2),
               _buildNavItem(3),
             ],

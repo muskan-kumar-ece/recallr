@@ -104,7 +104,7 @@ void main() {
 
     test('17. Storage MIME type whitelist: restricts to image, audio, and PDF formats', () {
       expect(storageRulesContent, contains('function isAllowedMimeType()'));
-      expect(storageRulesContent, contains('image/(jpeg|png|webp)'));
+      expect(storageRulesContent, contains('image/(jpeg|jpg|png|webp|heic)'));
       expect(storageRulesContent, contains('audio/(m4a|mp4|aac|mpeg|wav|webm)'));
       expect(storageRulesContent, contains('application/pdf'));
     });

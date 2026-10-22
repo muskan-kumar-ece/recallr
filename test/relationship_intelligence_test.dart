@@ -781,7 +781,7 @@ void main() {
         id: 'per_sarah_01',
         name: 'Sarah Chen',
         firstMet: 'Jan 15, 2026',
-        lastInteraction: 'Aug 25, 2026',
+        lastInteraction: 'Yesterday',
         totalInteractions: 8,
         memories: [
           const MemoryItem(id: 'm1', category: 'Project', text: 'RISC-V collaboration', source: 'Meeting'),
@@ -845,7 +845,7 @@ void main() {
 
       final profile = _createTestProfile(
         firstMet: 'Jan 15, 2026',
-        lastInteraction: 'Aug 25, 2026',
+        lastInteraction: 'Yesterday',
         totalInteractions: 8,
         sharedEventsCount: 3,
         relationshipStrength: 'High · Technical Collaborator',
@@ -875,7 +875,7 @@ void main() {
         role: 'VP of System Architecture',
         company: 'Mosaic Labs',
         firstMet: 'Jan 15, 2026',
-        lastInteraction: 'Aug 25, 2026',
+        lastInteraction: 'Yesterday',
         totalInteractions: 8,
         sharedEventsCount: 3,
         relationshipStrength: 'Strong · Technical Collaborator',
@@ -951,7 +951,7 @@ void main() {
         role: 'VP of System Architecture',
         company: 'Mosaic Labs',
         firstMet: 'Jan 15, 2026',
-        lastInteraction: 'Aug 25, 2026',
+        lastInteraction: 'Yesterday',
         totalInteractions: 8,
         sharedEventsCount: 3,
         memories: [

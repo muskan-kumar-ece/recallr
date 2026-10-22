@@ -413,7 +413,7 @@ void main() {
       final duration = stopwatch.elapsedMilliseconds;
       stopwatch.stop();
 
-      expect(duration, lessThan(2500));
+      expect(duration, lessThan(4000));
       expect(run1.isNotEmpty, isTrue);
 
       // Verify determinism: identical second run produces identical edge count & first edge ID

@@ -49,6 +49,10 @@ class RecallrButton extends StatelessWidget {
             child: InkWell(
               onTap: isDisabled ? null : onPressed,
               borderRadius: RecallrRadii.radiusMd,
+              splashColor: isAi
+                  ? RecallrColors.aiCyanHighlight.withAlpha(50)
+                  : RecallrColors.aiElectricVioletPressed.withAlpha(50),
+              highlightColor: Colors.white.withAlpha(15),
               child: Ink(
                 decoration: BoxDecoration(
                   gradient: (isAi && !isDisabled) ? RecallrColors.aiGradient : null,

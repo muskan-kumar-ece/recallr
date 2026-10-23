@@ -4,6 +4,7 @@ import '../../../core/widgets/widgets.dart';
 import '../../relationship_intelligence/models/models.dart';
 import '../../relationship_intelligence/widgets/relationship_momentum_card.dart';
 import '../models/person_profile_model.dart';
+import '../../../services/relationship/relationship_metrics_display.dart';
 
 /// Phase 12, Phase 13H-01, 13H-02, 13H-03 & 13H-05:
 /// Relationship Intelligence Snapshot strip, Momentum Card & "Recommended Next Step" in Person Dossier.
@@ -117,7 +118,7 @@ class RelationshipIntelligence extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildStrengthScoreCard(strength),
+                  _buildStrengthScoreCard(strength, state),
                   RecallrSpacing.gapSm,
                   _buildSignalsCard(intel.signals),
                 ],
@@ -129,7 +130,7 @@ class RelationshipIntelligence extends StatelessWidget {
               children: [
                 Expanded(
                   flex: 5,
-                  child: _buildStrengthScoreCard(strength),
+                  child: _buildStrengthScoreCard(strength, state),
                 ),
                 RecallrSpacing.gapSm,
                 Expanded(
@@ -164,7 +165,7 @@ class RelationshipIntelligence extends StatelessWidget {
     );
   }
 
-  Widget _buildStrengthScoreCard(RelationshipStrength strength) {
+  Widget _buildStrengthScoreCard(RelationshipStrength strength, RelationshipState state) {
     return Container(
       padding: const EdgeInsets.all(RecallrSpacing.md),
       decoration: BoxDecoration(
@@ -214,11 +215,7 @@ class RelationshipIntelligence extends StatelessWidget {
           ),
           const SizedBox(height: 6.0),
           Text(
-            profile.relationshipStrength.isNotEmpty
-                ? profile.relationshipStrength
-                : (strength.summary.isNotEmpty
-                    ? strength.summary
-                    : 'Derived from interaction cadence and memory depth.'),
+            _getTitleFromScore(strength.score, state),
             style: RecallrTypography.bodyMedium.copyWith(
               color: RecallrColors.textSecondary,
               fontSize: 11.5,
@@ -232,9 +229,6 @@ class RelationshipIntelligence extends StatelessWidget {
   }
 
   Widget _buildSignalsCard(RelationshipSignals signals) {
-    final daysText = signals.daysSinceLastInteraction != null
-        ? '${signals.daysSinceLastInteraction}d ago'
-        : 'Never';
 
     return Container(
       padding: const EdgeInsets.all(RecallrSpacing.md),
@@ -270,7 +264,10 @@ class RelationshipIntelligence extends StatelessWidget {
               Expanded(
                 child: _SignalItem(
                   label: 'Last Interaction',
-                  value: profile.lastInteraction.isNotEmpty ? profile.lastInteraction : daysText,
+                  value: RelationshipMetricsDisplay.formatLastInteraction(
+                    lastInteractionAt: profile.lastInteractionAt,
+                    lastInteractionString: profile.lastInteraction.isNotEmpty ? profile.lastInteraction : null,
+                  ),
                   icon: Icons.history_rounded,
                   isAlert: signals.daysSinceLastInteraction != null && signals.daysSinceLastInteraction! > 45,
                 ),
@@ -674,6 +671,15 @@ class RelationshipIntelligence extends StatelessWidget {
       topFactors: strength.factors,
       generatedAt: DateTime.now(),
     );
+  }
+  String _getTitleFromScore(double score, RelationshipState? state) {
+    if (state == RelationshipState.newRelationship) return 'New Contact';
+    if (state == RelationshipState.quiet) return 'Quiet Contact';
+    if (score >= 90.0) return 'Core Network';
+    if (score >= 75.0) return 'Strong Partner';
+    if (score >= 50.0) return 'Active Collaborator';
+    if (score >= 25.0) return 'Emerging Connection';
+    return 'New Contact';
   }
 }
 

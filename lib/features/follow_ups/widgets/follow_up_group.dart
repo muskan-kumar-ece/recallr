@@ -12,6 +12,8 @@ class FollowUpGroup extends StatelessWidget {
   final ValueChanged<String>? onTapPerson;
   final ValueChanged<FollowUpItem>? onTapSource;
   final ValueChanged<FollowUpItem>? onToggleComplete;
+  final ValueChanged<FollowUpItem>? onShareFollowUp;
+  final ValueChanged<FollowUpItem>? onDeleteFollowUp;
 
   const FollowUpGroup({
     super.key,
@@ -22,6 +24,8 @@ class FollowUpGroup extends StatelessWidget {
     this.onTapPerson,
     this.onTapSource,
     this.onToggleComplete,
+    this.onShareFollowUp,
+    this.onDeleteFollowUp,
   });
 
   @override
@@ -124,6 +128,8 @@ class FollowUpGroup extends StatelessWidget {
                   onToggleComplete!(item);
                 }
               },
+              onShare: onShareFollowUp != null ? () => onShareFollowUp!(item) : null,
+              onDelete: onDeleteFollowUp != null ? () => onDeleteFollowUp!(item) : null,
             );
           },
         ),

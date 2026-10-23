@@ -10,6 +10,8 @@ class ActivityCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onTapPerson;
   final VoidCallback? onTapAction;
+  final VoidCallback? onShare;
+  final VoidCallback? onDelete;
 
   const ActivityCard({
     super.key,
@@ -18,6 +20,8 @@ class ActivityCard extends StatelessWidget {
     this.onTap,
     this.onTapPerson,
     this.onTapAction,
+    this.onShare,
+    this.onDelete,
   });
 
   String _getInitials(String name) {
@@ -266,10 +270,36 @@ class ActivityCard extends StatelessWidget {
                 ),
                 RecallrSpacing.gapMd,
 
-                // Action Footer
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                // Action Footer (Wrap prevents overflow on narrow viewports)
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: RecallrSpacing.sm,
+                  runSpacing: RecallrSpacing.xs,
                   children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onShare != null)
+                          IconButton(
+                            icon: const Icon(Icons.share_outlined, size: 18.0, color: RecallrColors.textTertiary),
+                            tooltip: 'Share Note',
+                            splashRadius: 18.0,
+                            constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                            padding: const EdgeInsets.all(4.0),
+                            onPressed: onShare,
+                          ),
+                        if (onDelete != null)
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline_rounded, size: 18.0, color: RecallrColors.textTertiary),
+                            tooltip: 'Delete Encounter',
+                            splashRadius: 18.0,
+                            constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                            padding: const EdgeInsets.all(4.0),
+                            onPressed: onDelete,
+                          ),
+                      ],
+                    ),
                     RecallrButton(
                       label: activity.actionLabel,
                       variant: RecallrButtonVariant.secondary,

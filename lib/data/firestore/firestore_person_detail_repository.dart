@@ -243,4 +243,52 @@ class FirestorePersonDetailRepository implements PersonDetailRepository {
       throw RecallrDataException.fromException(e, st);
     }
   }
+
+  @override
+  Future<void> deleteProfile(String personId) async {
+    try {
+      await _personDoc(personId).delete();
+    } catch (e, st) {
+      if (e is RecallrDataException) rethrow;
+      throw RecallrDataException.fromException(e, st);
+    }
+  }
+
+  @override
+  Future<void> deleteMemoryItem(String personId, String memoryId) async {
+    try {
+      final doc = await _personDoc(personId).get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      final memoriesList = (data['memories'] as List<dynamic>? ?? [])
+          .where((m) => (m is Map<String, dynamic> ? m['id'] : null) != memoryId)
+          .toList();
+      await _personDoc(personId).update({
+        'memories': memoriesList,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e, st) {
+      if (e is RecallrDataException) rethrow;
+      throw RecallrDataException.fromException(e, st);
+    }
+  }
+
+  @override
+  Future<void> deleteTimelineItem(String personId, String timelineId) async {
+    try {
+      final doc = await _personDoc(personId).get();
+      if (!doc.exists) return;
+      final data = doc.data() ?? {};
+      final timelineList = (data['timeline'] as List<dynamic>? ?? [])
+          .where((t) => (t is Map<String, dynamic> ? t['id'] : null) != timelineId)
+          .toList();
+      await _personDoc(personId).update({
+        'timeline': timelineList,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e, st) {
+      if (e is RecallrDataException) rethrow;
+      throw RecallrDataException.fromException(e, st);
+    }
+  }
 }

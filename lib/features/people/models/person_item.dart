@@ -26,6 +26,7 @@ class PersonItem {
   final DateTime? lastInteractionDate;
   final String initials;
   final List<String> capabilities;
+  final List<String> brands;
   final String? pendingFollowUp;
   final bool hasPendingFollowUp;
   final int interactionCount;
@@ -48,6 +49,7 @@ class PersonItem {
     this.lastInteractionDate,
     required this.initials,
     this.capabilities = const [],
+    this.brands = const [],
     this.pendingFollowUp,
     this.hasPendingFollowUp = false,
     this.interactionCount = 1,
@@ -84,6 +86,7 @@ class PersonItem {
       'lastInteractionDate': lastInteractionDate != null ? Timestamp.fromDate(lastInteractionDate!) : null,
       'initials': initials.isNotEmpty ? initials : computeInitials(name),
       'capabilities': capabilities,
+      'brands': brands,
       'pendingFollowUp': pendingFollowUp,
       'hasPendingFollowUp': hasPendingFollowUp,
       'interactionCount': interactionCount,
@@ -118,6 +121,7 @@ class PersonItem {
       lastInteractionDate: parseDate(map['lastInteractionDate']),
       initials: rawInitials.isNotEmpty ? rawInitials : computeInitials(nameStr),
       capabilities: (map['capabilities'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       pendingFollowUp: map['pendingFollowUp']?.toString(),
       hasPendingFollowUp: map['hasPendingFollowUp'] == true,
       interactionCount: (map['interactionCount'] as num?)?.toInt() ?? 1,
@@ -152,6 +156,7 @@ class PersonItem {
     DateTime? lastInteractionDate,
     String? initials,
     List<String>? capabilities,
+    List<String>? brands,
     String? pendingFollowUp,
     bool? hasPendingFollowUp,
     int? interactionCount,
@@ -174,6 +179,7 @@ class PersonItem {
       lastInteractionDate: lastInteractionDate ?? this.lastInteractionDate,
       initials: initials ?? this.initials,
       capabilities: capabilities ?? this.capabilities,
+      brands: brands ?? this.brands,
       pendingFollowUp: pendingFollowUp ?? this.pendingFollowUp,
       hasPendingFollowUp: hasPendingFollowUp ?? this.hasPendingFollowUp,
       interactionCount: interactionCount ?? this.interactionCount,

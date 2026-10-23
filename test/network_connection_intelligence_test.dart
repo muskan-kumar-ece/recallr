@@ -1940,6 +1940,15 @@ class _MockPersonDetailRepo implements PersonDetailRepository {
   Future<PersonProfile> enrichRelationshipMemory({required String personId, required RelationshipMemoryUpdate update}) async => profiles[personId]!;
   @override
   Future<void> updateRelationshipStats(String personId, {int? totalInteractions, String? lastInteraction, String? relationshipStrength, int? sharedEventsCount}) async {}
+  @override
+  Future<void> deleteProfile(String personId) async {}
+
+  @override
+  Future<void> deleteMemoryItem(String personId, String memoryId) async {}
+
+  @override
+  Future<void> deleteTimelineItem(String personId, String timelineId) async {}
+
 }
 
 class _MockActivityRepo implements ActivityRepository {

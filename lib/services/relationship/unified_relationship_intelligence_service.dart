@@ -904,6 +904,16 @@ class _NoOpPersonDetailRepository implements PersonDetailRepository {
   const _NoOpPersonDetailRepository();
 
   @override
+  Future<void> deleteProfile(String personId) async {}
+
+  @override
+  Future<void> deleteMemoryItem(String personId, String memoryId) async {}
+
+  @override
+  Future<void> deleteTimelineItem(String personId, String timelineId) async {}
+
+
+  @override
   Future<PersonProfile?> getProfile(String personId) async => null;
 
   @override

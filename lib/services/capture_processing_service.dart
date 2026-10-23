@@ -103,6 +103,8 @@ class DeterministicCaptureProcessingService implements CaptureProcessingService 
         'email': entities.email,
         'phone': entities.phone,
         'website': entities.website,
+        'brands': entities.brands,
+        'nameConfidence': entities.nameConfidence,
         'modality': 'businessCard',
         'ocrProvider': ocr.isNotEmpty ? (ocr.metadata?['provider'] ?? 'ML Kit') : 'none',
         'resolvedPersonId': resolution?.matchedPersonId,

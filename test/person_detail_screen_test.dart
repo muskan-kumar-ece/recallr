@@ -64,7 +64,7 @@ void main() {
       expect(find.text('First Met'), findsOneWidget);
       expect(find.text('Last Interaction'), findsOneWidget);
       expect(find.text('Interactions'), findsOneWidget);
-      expect(find.text('High · Core Technical Collaborator'), findsOneWidget);
+      expect(find.text('Strong Partner'), findsOneWidget);
     });
 
     // 3. What Recallr Knows / AI Summary
@@ -348,7 +348,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Anonymous Contact'), findsOneWidget);
-      expect(find.text('No Recorded History'), findsOneWidget);
+      expect(find.text('New Contact'), findsOneWidget);
     });
 
     // 21. Desktop 2-column layout renders correctly

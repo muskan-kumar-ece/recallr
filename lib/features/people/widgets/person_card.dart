@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/theme/theme.dart';
 import '../../../core/widgets/widgets.dart';
+import '../../../core/utils/share_formatter.dart';
+import '../../../core/widgets/share_bottom_sheet.dart';
+import '../../../core/widgets/destructive_confirm_dialog.dart';
 import '../../relationship_intelligence/models/models.dart';
 import '../models/person_item.dart';
 
@@ -17,50 +20,6 @@ class PersonCard extends StatelessWidget {
     this.intelligence,
     this.onDelete,
   });
-
-  Future<void> _confirmDelete(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: RecallrColors.charcoalCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: RecallrRadii.radiusLg,
-          side: const BorderSide(color: RecallrColors.borderSubtle),
-        ),
-        title: Row(
-          children: [
-            const Icon(Icons.delete_outline_rounded, color: RecallrColors.crimsonAlert, size: 22),
-            const SizedBox(width: 8),
-            Text('Delete Contact', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to remove ${person.name} from your people directory? This action cannot be undone.',
-          style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: RecallrColors.textTertiary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
-              foregroundColor: RecallrColors.crimsonAlert,
-              elevation: 0,
-              side: const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true && onDelete != null) {
-      onDelete!();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,6 +135,8 @@ class PersonCard extends StatelessWidget {
                 onSelected: (val) {
                   if (val == 'view') {
                     Navigator.of(context).pushNamed(person.targetRoute);
+                  } else if (val == 'share') {
+                    _handleShare(context);
                   } else if (val == 'delete') {
                     _confirmDelete(context);
                   }
@@ -188,6 +149,16 @@ class PersonCard extends StatelessWidget {
                         const Icon(Icons.visibility_outlined, size: 16.0, color: RecallrColors.textSecondary),
                         const SizedBox(width: 8.0),
                         Text('View Dossier', style: RecallrTypography.bodyMedium),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'share',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.share_outlined, size: 16.0, color: RecallrColors.aiElectricViolet),
+                        const SizedBox(width: 8.0),
+                        Text('Share Contact', style: RecallrTypography.bodyMedium),
                       ],
                     ),
                   ),
@@ -375,13 +346,37 @@ class PersonCard extends StatelessWidget {
                 child: Wrap(
                   spacing: RecallrSpacing.xs,
                   runSpacing: 4.0,
-                  children: person.capabilities
-                      .take(3)
-                      .map((cap) => RecallrBadge(
-                            text: cap,
-                            variant: RecallrBadgeVariant.neutral,
-                          ))
-                      .toList(),
+                  children: [
+                    ...person.brands.take(2).map((brand) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5.0, vertical: 2.0),
+                          decoration: BoxDecoration(
+                            color: RecallrColors.slateSurface,
+                            borderRadius: RecallrRadii.radiusSm,
+                            border: Border.all(color: RecallrColors.borderSubtle, width: 0.8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.sell_outlined, size: 9.0, color: RecallrColors.aiCyanHighlight),
+                              const SizedBox(width: 3.0),
+                              Text(
+                                brand,
+                                style: RecallrTypography.labelSmall.copyWith(
+                                  color: RecallrColors.textPrimary,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )),
+                    ...person.capabilities
+                        .take(person.brands.isNotEmpty ? 2 : 3)
+                        .map((cap) => RecallrBadge(
+                              text: cap,
+                              variant: RecallrBadgeVariant.neutral,
+                            )),
+                  ],
                 ),
               ),
               RecallrSpacing.gapSm,
@@ -408,5 +403,30 @@ class PersonCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void _handleShare(BuildContext context) {
+    final summary = ShareFormatter.formatPersonItemSummary(person);
+    final vCard = ShareFormatter.personItemToVCard(person);
+    ShareBottomSheet.show(
+      context,
+      title: 'Share Contact',
+      subtitle: '${person.name} · ${person.company}',
+      textSummary: summary,
+      vCardContent: vCard,
+      shareSubject: 'Contact Card: ${person.name}',
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await DestructiveConfirmDialog.show(
+      context,
+      title: 'Delete Contact',
+      message: 'Are you sure you want to remove \${person.name} from your contacts? This cannot be undone.',
+      confirmLabel: 'Delete Contact',
+    );
+    if (confirmed && onDelete != null) {
+      onDelete!();
+    }
   }
 }

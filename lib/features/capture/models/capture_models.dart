@@ -93,10 +93,14 @@ class CaptureReviewData {
   final String? companyName;
   final String? eventName;
   final String? location;
+  final String? address;
   final String? date;
   final String? audioDuration;
   final List<String> bulletPoints;
   final Map<String, String> contactDetails;
+  final List<String> brands;
+  final double? nameConfidence;
+  final bool needsNameConfirmation;
 
   const CaptureReviewData({
     required this.title,
@@ -106,10 +110,14 @@ class CaptureReviewData {
     this.companyName,
     this.eventName,
     this.location,
+    this.address,
     this.date,
     this.audioDuration,
     this.bulletPoints = const [],
     this.contactDetails = const {},
+    this.brands = const [],
+    this.nameConfidence,
+    this.needsNameConfirmation = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -121,10 +129,14 @@ class CaptureReviewData {
       'companyName': companyName,
       'eventName': eventName,
       'location': location,
+      'address': address ?? location,
       'date': date,
       'audioDuration': audioDuration,
       'bulletPoints': bulletPoints,
       'contactDetails': contactDetails,
+      'brands': brands,
+      'nameConfidence': nameConfidence,
+      'needsNameConfirmation': needsNameConfirmation,
     };
   }
 
@@ -136,11 +148,15 @@ class CaptureReviewData {
       personRole: map['personRole']?.toString(),
       companyName: map['companyName']?.toString(),
       eventName: map['eventName']?.toString(),
-      location: map['location']?.toString(),
+      location: map['location']?.toString() ?? map['address']?.toString(),
+      address: map['address']?.toString() ?? map['location']?.toString(),
       date: map['date']?.toString(),
       audioDuration: map['audioDuration']?.toString(),
       bulletPoints: (map['bulletPoints'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       contactDetails: (map['contactDetails'] as Map?)?.map((k, v) => MapEntry(k.toString(), v.toString())) ?? const {},
+      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      nameConfidence: (map['nameConfidence'] as num?)?.toDouble(),
+      needsNameConfirmation: map['needsNameConfirmation'] == true,
     );
   }
 
@@ -152,10 +168,14 @@ class CaptureReviewData {
     String? companyName,
     String? eventName,
     String? location,
+    String? address,
     String? date,
     String? audioDuration,
     List<String>? bulletPoints,
     Map<String, String>? contactDetails,
+    List<String>? brands,
+    double? nameConfidence,
+    bool? needsNameConfirmation,
   }) {
     return CaptureReviewData(
       title: title ?? this.title,
@@ -165,10 +185,14 @@ class CaptureReviewData {
       companyName: companyName ?? this.companyName,
       eventName: eventName ?? this.eventName,
       location: location ?? this.location,
+      address: address ?? this.address,
       date: date ?? this.date,
       audioDuration: audioDuration ?? this.audioDuration,
       bulletPoints: bulletPoints ?? this.bulletPoints,
       contactDetails: contactDetails ?? this.contactDetails,
+      brands: brands ?? this.brands,
+      nameConfidence: nameConfidence ?? this.nameConfidence,
+      needsNameConfirmation: needsNameConfirmation ?? this.needsNameConfirmation,
     );
   }
 }

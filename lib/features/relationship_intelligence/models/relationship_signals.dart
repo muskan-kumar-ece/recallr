@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import '../../activity/models/activity_models.dart';
 import '../../capture/models/capture_models.dart';
 import '../../follow_ups/models/follow_up_models.dart';
@@ -75,7 +75,7 @@ class RelationshipSignals {
       if (act.createdAt != null) {
         rawDates.add(act.createdAt!);
       } else {
-        final parsed = _parseDateString(act.timestamp);
+        final parsed = _parseDateString(act.timestamp, now);
         if (parsed != null) {
           rawDates.add(parsed);
         }
@@ -83,7 +83,7 @@ class RelationshipSignals {
     }
 
     for (final tl in profile.timeline) {
-      final parsed = _parseDateString(tl.date);
+      final parsed = _parseDateString(tl.date, now);
       if (parsed != null) {
         rawDates.add(parsed);
       }
@@ -100,18 +100,24 @@ class RelationshipSignals {
       final diff = now.difference(latestInteractionDate).inDays;
       daysSinceLatest = diff < 0 ? 0 : diff;
     } else if (profile.lastInteraction.isNotEmpty && profile.lastInteraction != 'Never') {
-      final parsed = _parseDateString(profile.lastInteraction);
+      final parsed = _parseDateString(profile.lastInteraction, now);
       if (parsed != null) {
         latestInteractionDate = parsed;
         final diff = now.difference(parsed).inDays;
         daysSinceLatest = diff < 0 ? 0 : diff;
       }
     }
+    // Fallback: use lastInteractionAt DateTime if string parsing failed
+    if (latestInteractionDate == null && profile.lastInteractionAt != null) {
+      latestInteractionDate = profile.lastInteractionAt;
+      final diff = now.difference(profile.lastInteractionAt!).inDays;
+      daysSinceLatest = diff < 0 ? 0 : diff;
+    }
 
     // 2. Compute relationship age
     int ageDays = 0;
     if (profile.firstMet.isNotEmpty && profile.firstMet != 'Unknown') {
-      final firstMetDate = _parseDateString(profile.firstMet);
+      final firstMetDate = _parseDateString(profile.firstMet, now);
       if (firstMetDate != null) {
         final diff = now.difference(firstMetDate).inDays;
         ageDays = diff < 0 ? 0 : diff;
@@ -124,12 +130,11 @@ class RelationshipSignals {
       final diff = now.difference(earliest).inDays;
       ageDays = diff < 0 ? 0 : diff;
     }
-
-    // 3. Count recent interactions (within 30 days)
-    final recentInteractions = interactionDates.where((d) {
-      final diff = now.difference(d).inDays;
-      return diff >= 0 && diff <= 30;
-    }).length;
+    // Fallback: profile createdAt if firstMet and interactionDates empty
+    if (ageDays == 0 && profile.createdAt != null) {
+      final diff = now.difference(profile.createdAt!).inDays;
+      ageDays = diff < 0 ? 0 : diff;
+    }
 
     // 4. Calculate total interaction count
     final totalInteractions = profile.totalInteractions > 0
@@ -137,6 +142,15 @@ class RelationshipSignals {
         : (distinctActivities.isNotEmpty
             ? distinctActivities.length
             : interactionDates.length);
+
+    // 3. Count recent interactions (within 30 days)
+    var recentInteractions = interactionDates.where((d) {
+      final diff = now.difference(d).inDays;
+      return diff >= 0 && diff <= 30;
+    }).length;
+    if (recentInteractions == 0 && daysSinceLatest != null && daysSinceLatest <= 30 && totalInteractions > 0) {
+      recentInteractions = totalInteractions >= 4 ? 4 : (totalInteractions >= 2 ? 2 : 1);
+    }
 
     // 5. Compute frequency (interactions per 30-day period)
     double frequency = 0.0;
@@ -158,7 +172,7 @@ class RelationshipSignals {
       if (fu.isCompleted || fu.status == FollowUpStatus.completed) {
         completedFUs++;
       } else {
-        final parsedDue = _parseDateString(fu.dueDate);
+        final parsedDue = _parseDateString(fu.dueDate, now);
         if (fu.status == FollowUpStatus.overdue ||
             fu.commitmentType == CommitmentType.overdue ||
             (parsedDue != null && parsedDue.isBefore(now))) {
@@ -243,28 +257,45 @@ class RelationshipSignals {
     );
   }
 
-  static DateTime? _parseDateString(String dateStr) {
+  static DateTime? _parseDateString(String dateStr, [DateTime? refDate]) {
+    final baseNow = refDate ?? DateTime.now();
     if (dateStr.isEmpty) return null;
     final normalized = dateStr.trim();
     if (normalized == 'Never' || normalized == 'Unknown') {
       return null;
     }
-    if (normalized.toLowerCase() == 'today') {
-      return DateTime.now();
-    }
-    if (normalized.toLowerCase() == 'yesterday') {
-      return DateTime.now().subtract(const Duration(days: 1));
+    final lower = normalized.toLowerCase();
+
+    // "just now" / "moments ago" / "recently" -> treated as today for signal computation.
+    if (lower == 'just now' || lower == 'moments ago' || lower == 'recently' || lower == 'now') {
+      return baseNow;
     }
 
+    if (lower == 'today') return baseNow;
+    if (lower == 'yesterday') return baseNow.subtract(const Duration(days: 1));
+
+    // "X minutes ago"
+    final minutesMatch = RegExp(r'^(\d+)\s+minutes?\s+ago$', caseSensitive: false).firstMatch(normalized);
+    if (minutesMatch != null) {
+      final m = int.tryParse(minutesMatch.group(1)!);
+      if (m != null) return baseNow.subtract(Duration(minutes: m));
+    }
+
+    // "X hours ago"
+    final hoursMatch = RegExp(r'^(\d+)\s+hours?\s+ago$', caseSensitive: false).firstMatch(normalized);
+    if (hoursMatch != null) {
+      final h = int.tryParse(hoursMatch.group(1)!);
+      if (h != null) return baseNow.subtract(Duration(hours: h));
+    }
+
+    // "X days ago"
     final daysAgoMatch = RegExp(r'^(\d+)\s+days?\s+ago$', caseSensitive: false).firstMatch(normalized);
     if (daysAgoMatch != null) {
       final d = int.tryParse(daysAgoMatch.group(1)!);
-      if (d != null) {
-        return DateTime.now().subtract(Duration(days: d));
-      }
+      if (d != null) return baseNow.subtract(Duration(days: d));
     }
 
-    // ISO format: YYYY-MM-DD
+    // ISO format: YYYY-MM-DD or full DateTime
     try {
       return DateTime.parse(normalized);
     } catch (_) {}
@@ -295,6 +326,22 @@ class RelationshipSignals {
       }
     }
 
+
+    // Month Year e.g. Oct 2024 or strings containing month and 4-digit year e.g. 'October 2024 - Open Source'
+    final yearMatch = RegExp(r'\b(19\d\d|20\d\d)\b').firstMatch(normalized);
+    if (yearMatch != null) {
+      final y = int.tryParse(yearMatch.group(1)!);
+      if (y != null) {
+        int? m;
+        for (final entry in monthMap.entries) {
+          if (lower.contains(entry.key)) {
+            m = entry.value;
+            break;
+          }
+        }
+        return DateTime(y, m ?? 1, 1);
+      }
+    }
     return null;
   }
 }

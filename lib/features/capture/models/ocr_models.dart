@@ -208,6 +208,14 @@ class OcrExtractedEntities {
   final String? date;
   final List<String> keyPoints;
 
+  // Strict structured business card attributes
+  final String? designation;
+  final String? address;
+  final List<String> brands;
+  final List<String> phones;
+  final List<String> emails;
+  final Map<String, double> confidence;
+
   const OcrExtractedEntities({
     this.name,
     this.role,
@@ -218,7 +226,52 @@ class OcrExtractedEntities {
     this.location,
     this.date,
     this.keyPoints = const [],
+    this.designation,
+    this.address,
+    this.brands = const [],
+    this.phones = const [],
+    this.emails = const [],
+    this.confidence = const {},
   });
+
+  String? get effectiveRole => designation ?? role;
+  String? get effectiveLocation => address ?? location;
+  double get nameConfidence => confidence['name'] ?? (name != null ? 0.9 : 0.0);
+
+  /// Strict JSON representation matching the required business card OCR contract:
+  /// {
+  ///   "name": string | null,
+  ///   "designation": string | null,
+  ///   "company": string | null,
+  ///   "brands": string[],
+  ///   "phones": string[],
+  ///   "emails": string[],
+  ///   "website": string | null,
+  ///   "address": string | null,
+  ///   "confidence": { "name": 0-1 }
+  /// }
+  Map<String, dynamic> toJson() {
+    final effectivePhones = phones.isNotEmpty
+        ? phones
+        : (phone != null && phone!.isNotEmpty ? [phone!] : <String>[]);
+    final effectiveEmails = emails.isNotEmpty
+        ? emails
+        : (email != null && email!.isNotEmpty ? [email!] : <String>[]);
+
+    return {
+      'name': name,
+      'designation': designation ?? role,
+      'company': company,
+      'brands': brands,
+      'phones': effectivePhones,
+      'emails': effectiveEmails,
+      'website': website,
+      'address': address ?? location,
+      'confidence': {
+        'name': confidence['name'] ?? (name != null ? 0.9 : 0.0),
+      },
+    };
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -231,20 +284,51 @@ class OcrExtractedEntities {
       'location': location,
       'date': date,
       'keyPoints': keyPoints,
+      'designation': designation ?? role,
+      'address': address ?? location,
+      'brands': brands,
+      'phones': phones,
+      'emails': emails,
+      'confidence': confidence,
     };
   }
 
   factory OcrExtractedEntities.fromMap(Map<String, dynamic> map) {
+    Map<String, double> parseConfidence(dynamic val) {
+      if (val is Map) {
+        return val.map((k, v) => MapEntry(
+              k.toString(),
+              (v is num) ? v.toDouble() : (double.tryParse(v.toString()) ?? 0.0),
+            ));
+      }
+      return const {};
+    }
+
+    final rawBrands = (map['brands'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
+    final rawPhones = (map['phones'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
+    final rawEmails = (map['emails'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
+
+    final singlePhone = map['phone']?.toString() ?? (rawPhones.isNotEmpty ? rawPhones.first : null);
+    final singleEmail = map['email']?.toString() ?? (rawEmails.isNotEmpty ? rawEmails.first : null);
+    final desig = map['designation']?.toString() ?? map['role']?.toString();
+    final addr = map['address']?.toString() ?? map['location']?.toString();
+
     return OcrExtractedEntities(
       name: map['name']?.toString(),
-      role: map['role']?.toString(),
+      role: map['role']?.toString() ?? desig,
       company: map['company']?.toString(),
-      email: map['email']?.toString(),
-      phone: map['phone']?.toString(),
+      email: singleEmail,
+      phone: singlePhone,
       website: map['website']?.toString(),
-      location: map['location']?.toString(),
+      location: map['location']?.toString() ?? addr,
       date: map['date']?.toString(),
       keyPoints: (map['keyPoints'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      designation: desig,
+      address: addr,
+      brands: rawBrands,
+      phones: rawPhones.isNotEmpty ? rawPhones : (singlePhone != null ? [singlePhone] : const []),
+      emails: rawEmails.isNotEmpty ? rawEmails : (singleEmail != null ? [singleEmail] : const []),
+      confidence: parseConfidence(map['confidence']),
     );
   }
 
@@ -258,6 +342,12 @@ class OcrExtractedEntities {
     String? location,
     String? date,
     List<String>? keyPoints,
+    String? designation,
+    String? address,
+    List<String>? brands,
+    List<String>? phones,
+    List<String>? emails,
+    Map<String, double>? confidence,
   }) {
     return OcrExtractedEntities(
       name: name ?? this.name,
@@ -269,6 +359,12 @@ class OcrExtractedEntities {
       location: location ?? this.location,
       date: date ?? this.date,
       keyPoints: keyPoints ?? this.keyPoints,
+      designation: designation ?? this.designation,
+      address: address ?? this.address,
+      brands: brands ?? this.brands,
+      phones: phones ?? this.phones,
+      emails: emails ?? this.emails,
+      confidence: confidence ?? this.confidence,
     );
   }
 }

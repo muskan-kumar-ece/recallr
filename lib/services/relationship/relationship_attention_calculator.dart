@@ -51,6 +51,9 @@ class DeterministicRelationshipAttentionCalculator implements RelationshipAttent
       case RelationshipState.dormant:
         relRisk = 0.65;
         break;
+      case RelationshipState.quiet:
+        relRisk = 0.15;
+        break;
       case RelationshipState.active:
         relRisk = 0.25;
         break;
@@ -66,7 +69,7 @@ class DeterministicRelationshipAttentionCalculator implements RelationshipAttent
     final days = signals.daysSinceLastInteraction;
     final double recencyRisk;
     if (days == null) {
-      recencyRisk = 0.65;
+      recencyRisk = 0.20; // Unknown date: low risk (not high like before — contact may be very recent)
     } else if (days <= 7) {
       recencyRisk = 0.05;
     } else if (days <= 30) {

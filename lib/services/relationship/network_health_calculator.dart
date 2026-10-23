@@ -98,6 +98,9 @@ class DeterministicNetworkHealthCalculator implements NetworkHealthCalculator {
           dormantCount++;
           stateHealthSum += 0.10;
           break;
+        case RelationshipState.quiet:
+          stateHealthSum += 0.35;
+          break;
       }
     }
 

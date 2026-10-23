@@ -135,6 +135,37 @@ class FakeFirestorePersonDetailRepository implements PersonDetailRepository {
     }
   }
 
+
+  @override
+  Future<void> deleteProfile(String personId) async {
+    _store.remove(personId);
+    _streamController.add(null);
+  }
+
+  @override
+  Future<void> deleteMemoryItem(String personId, String memoryId) async {
+    final existing = _store[personId];
+    if (existing != null) {
+      final updated = existing.copyWith(
+        memories: existing.memories.where((m) => m.id != memoryId).toList(),
+      );
+      _store[personId] = updated;
+      _streamController.add(updated);
+    }
+  }
+
+  @override
+  Future<void> deleteTimelineItem(String personId, String timelineId) async {
+    final existing = _store[personId];
+    if (existing != null) {
+      final updated = existing.copyWith(
+        timeline: existing.timeline.where((t) => t.id != timelineId).toList(),
+      );
+      _store[personId] = updated;
+      _streamController.add(updated);
+    }
+  }
+
   void dispose() {
     _streamController.close();
   }
@@ -357,7 +388,7 @@ void main() {
 
       expect(find.text('Dr. Priya Sharma'), findsWidgets);
       expect(find.textContaining('Microsoft Research India'), findsWidgets);
-      expect(find.text('Core Network'), findsWidgets);
+      expect(find.text('Strong Partner'), findsWidgets);
       expect(find.text('Leading edge research on quantization for Indic SLMs.'), findsOneWidget);
       expect(find.text('Coffee catch-up'), findsWidgets);
       expect(find.text('Send SLM quantization paper'), findsWidgets);

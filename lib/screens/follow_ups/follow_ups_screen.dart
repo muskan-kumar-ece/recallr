@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
 import '../../core/theme/theme.dart';
+import '../../core/utils/share_formatter.dart';
+import '../../core/widgets/destructive_confirm_dialog.dart';
+import '../../core/widgets/share_bottom_sheet.dart';
 import '../../core/widgets/widgets.dart';
 import '../../features/follow_ups/models/follow_up_models.dart';
 import '../../features/follow_ups/widgets/follow_up_detail_context.dart';
@@ -268,6 +271,67 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
     }).toList();
   }
 
+  void _handleShareFollowUp(FollowUpItem item) {
+    final text = ShareFormatter.formatFollowUp(item);
+    ShareBottomSheet.show(
+      context,
+      title: 'Share Commitment',
+      subtitle: item.title,
+      textSummary: text,
+      shareSubject: 'Commitment: ${item.title}',
+    );
+  }
+
+  Future<void> _handleDeleteFollowUp(FollowUpItem item) async {
+    final confirmed = await DestructiveConfirmDialog.show(
+      context,
+      title: 'Delete Follow-up Commitment',
+      message: 'Are you sure you want to delete "${item.title}"? This commitment will be removed from your active list.',
+      confirmLabel: 'Delete Commitment',
+    );
+
+    if (confirmed && mounted) {
+      try {
+        await _repository.deleteFollowUp(item.id);
+        if (mounted) {
+          setState(() {
+            _allFollowUps.removeWhere((f) => f.id == item.id);
+            if (_selectedFollowUp?.id == item.id) {
+              _selectedFollowUp = _allFollowUps.isNotEmpty ? _allFollowUps.first : null;
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Removed "${item.title}"'),
+              backgroundColor: RecallrColors.slateSurface,
+              action: SnackBarAction(
+                label: 'Undo',
+                textColor: RecallrColors.aiCyanHighlight,
+                onPressed: () async {
+                  await _repository.addFollowUp(item);
+                  if (mounted) {
+                    setState(() {
+                      _allFollowUps.add(item);
+                    });
+                  }
+                },
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete commitment: $e'),
+              backgroundColor: RecallrColors.crimsonAlert,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isError) {
@@ -436,6 +500,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
                   onTapFollowUp: _onFollowUpSelected,
                   onTapPerson: _navigateToPerson,
                   onTapSource: _navigateToSource,
+                  onShareFollowUp: _handleShareFollowUp,
+                  onDeleteFollowUp: _handleDeleteFollowUp,
                   onToggleComplete: (item) => _onToggleStatus(item.id, true),
                 ),
               ),
@@ -451,6 +517,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
                   onTapFollowUp: _onFollowUpSelected,
                   onTapPerson: _navigateToPerson,
                   onTapSource: _navigateToSource,
+                  onShareFollowUp: _handleShareFollowUp,
+                  onDeleteFollowUp: _handleDeleteFollowUp,
                   onToggleComplete: (item) => _onToggleStatus(item.id, true),
                 ),
               ),
@@ -466,6 +534,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
                   onTapFollowUp: _onFollowUpSelected,
                   onTapPerson: _navigateToPerson,
                   onTapSource: _navigateToSource,
+                  onShareFollowUp: _handleShareFollowUp,
+                  onDeleteFollowUp: _handleDeleteFollowUp,
                   onToggleComplete: (item) => _onToggleStatus(item.id, true),
                 ),
               ),
@@ -481,6 +551,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
                   onTapFollowUp: _onFollowUpSelected,
                   onTapPerson: _navigateToPerson,
                   onTapSource: _navigateToSource,
+                  onShareFollowUp: _handleShareFollowUp,
+                  onDeleteFollowUp: _handleDeleteFollowUp,
                   onToggleComplete: (item) => _onToggleStatus(item.id, true),
                 ),
               ),
@@ -496,6 +568,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
                   onTapFollowUp: _onFollowUpSelected,
                   onTapPerson: _navigateToPerson,
                   onTapSource: _navigateToSource,
+                  onShareFollowUp: _handleShareFollowUp,
+                  onDeleteFollowUp: _handleDeleteFollowUp,
                   onToggleComplete: (item) => _onToggleStatus(item.id, false),
                 ),
               ),

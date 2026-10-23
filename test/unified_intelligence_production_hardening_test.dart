@@ -111,6 +111,15 @@ class MutableFakePersonDetailRepository implements PersonDetailRepository {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  @override
+  Future<void> deleteProfile(String personId) async {}
+
+  @override
+  Future<void> deleteMemoryItem(String personId, String memoryId) async {}
+
+  @override
+  Future<void> deleteTimelineItem(String personId, String timelineId) async {}
+
 }
 
 class MutableFakeActivityRepository implements ActivityRepository {

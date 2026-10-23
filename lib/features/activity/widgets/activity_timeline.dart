@@ -9,6 +9,8 @@ class ActivityTimeline extends StatelessWidget {
   final String? selectedActivityId;
   final void Function(ActivityItem item)? onTapActivity;
   final void Function(String personId)? onTapPerson;
+  final void Function(ActivityItem item)? onShareActivity;
+  final void Function(ActivityItem item)? onDeleteActivity;
 
   const ActivityTimeline({
     super.key,
@@ -16,6 +18,8 @@ class ActivityTimeline extends StatelessWidget {
     this.selectedActivityId,
     this.onTapActivity,
     this.onTapPerson,
+    this.onShareActivity,
+    this.onDeleteActivity,
   });
 
   @override
@@ -39,6 +43,8 @@ class ActivityTimeline extends StatelessWidget {
           selectedActivityId: selectedActivityId,
           onTapActivity: onTapActivity,
           onTapPerson: onTapPerson,
+          onShareActivity: onShareActivity,
+          onDeleteActivity: onDeleteActivity,
         );
       },
     );

@@ -11,12 +11,16 @@ class PersonProfileHeader extends StatelessWidget {
   final PersonProfile profile;
   final VoidCallback? onBack;
   final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onShare;
 
   const PersonProfileHeader({
     super.key,
     required this.profile,
     this.onBack,
     this.onDelete,
+    this.onEdit,
+    this.onShare,
   });
 
   @override
@@ -43,8 +47,24 @@ class PersonProfileHeader extends StatelessWidget {
                   text: profile.relationshipType.name.toUpperCase(),
                   variant: RecallrBadgeVariant.neutral,
                 ),
+                if (onShare != null) ...[
+                  const SizedBox(width: 4.0),
+                  IconButton(
+                    icon: const Icon(Icons.share_outlined, color: RecallrColors.textSecondary, size: 20.0),
+                    tooltip: 'Share Contact',
+                    onPressed: onShare,
+                  ),
+                ],
+                if (onEdit != null) ...[
+                  const SizedBox(width: 4.0),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, color: RecallrColors.textSecondary, size: 20.0),
+                    tooltip: 'Edit Contact Details',
+                    onPressed: onEdit,
+                  ),
+                ],
                 if (onDelete != null) ...[
-                  const SizedBox(width: 6.0),
+                  const SizedBox(width: 4.0),
                   IconButton(
                     icon: const Icon(Icons.delete_outline_rounded, color: RecallrColors.crimsonAlert, size: 20.0),
                     tooltip: 'Delete Contact',
@@ -103,28 +123,60 @@ class PersonProfileHeader extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 3.0),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 13.0,
-                        color: RecallrColors.textTertiary,
-                      ),
-                      const SizedBox(width: 3.0),
-                      Expanded(
-                        child: Text(
-                          profile.location,
-                          style: RecallrTypography.bodyMedium.copyWith(
-                            color: RecallrColors.textTertiary,
-                            fontSize: 12.0,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  if (profile.location.isNotEmpty) ...[
+                    const SizedBox(height: 3.0),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 13.0,
+                          color: RecallrColors.textTertiary,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 3.0),
+                        Expanded(
+                          child: Text(
+                            profile.location,
+                            style: RecallrTypography.bodyMedium.copyWith(
+                              color: RecallrColors.textTertiary,
+                              fontSize: 12.0,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (profile.brands.isNotEmpty) ...[
+                    const SizedBox(height: 4.0),
+                    Wrap(
+                      spacing: 5.0,
+                      runSpacing: 4.0,
+                      children: profile.brands.map((brand) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
+                        decoration: BoxDecoration(
+                          color: RecallrColors.slateSurface,
+                          borderRadius: RecallrRadii.radiusSm,
+                          border: Border.all(color: RecallrColors.borderSubtle, width: 0.8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.sell_outlined, size: 10.0, color: RecallrColors.aiCyanHighlight),
+                            const SizedBox(width: 3.5),
+                            Text(
+                              brand,
+                              style: RecallrTypography.labelSmall.copyWith(
+                                color: RecallrColors.textPrimary,
+                                fontSize: 10.0,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )).toList(),
+                    ),
+                  ],
                   if ((profile.phone != null && profile.phone!.isNotEmpty) ||
                       (profile.email != null && profile.email!.isNotEmpty)) ...[
                     const SizedBox(height: 6.0),

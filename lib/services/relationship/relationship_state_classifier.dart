@@ -12,6 +12,21 @@ abstract class RelationshipStateClassifier {
 }
 
 /// Production implementation of precedence-ordered relationship state classifier.
+///
+/// Priority Order (evaluated top-to-bottom):
+/// 1. NEW      — count <=2 OR ageDays <7 (score capped at 30 by strength calculator)
+/// 2. DORMANT  — daysSinceLast >180 AND ageDays >180 (requires real parsed date)
+/// 3. NEGLECTED— count >=3 AND (daysSinceLast >60 OR hasOverdueFollowUp)
+/// 4. COOLING  — count >=2 AND daysSinceLast 31–60
+/// 5. STRONG   — score >=70 AND count >=4 AND daysSinceLast <=30
+/// 6. ACTIVE   — daysSinceLast <=30 AND count >=1
+/// 7. QUIET    — Fallback (unparseable date on established contact, or unmatched)
+///
+/// KEY INVARIANTS:
+/// - When daysSinceLast is null (unparseable date + no lastInteractionAt):
+///   contact is NEVER DORMANT, NEGLECTED, COOLING, STRONG, or ACTIVE.
+///   Falls to QUIET, not DORMANT.
+/// - NEW always takes precedence over everything else when count <=2 or ageDays <7.
 @immutable
 class DeterministicRelationshipStateClassifier implements RelationshipStateClassifier {
   const DeterministicRelationshipStateClassifier();
@@ -23,44 +38,55 @@ class DeterministicRelationshipStateClassifier implements RelationshipStateClass
   }) {
     final days = signals.daysSinceLastInteraction;
     final count = signals.interactionCount;
-    final memCount = signals.memoryCount;
     final ageDays = signals.relationshipAgeDays;
     final score = strength.score;
 
-    // Rule 1: DORMANT (Precedence 1)
-    // Relationship exists in history, but has had zero interactions for > 180 days
-    if ((ageDays > 180 || count > 0) && (days == null || days > 180)) {
+    // Rule 1: NEW (Precedence 1) — always evaluated first.
+    // A contact is NEW when it has <=2 interactions OR the relationship
+    // was created within the last 7 days. Score is capped at 30 by the
+    // strength calculator for these contacts.
+    if (count <= 2 || (ageDays > 0 && ageDays < 7) || count == 0) {
+      return RelationshipState.newRelationship;
+    }
+
+    // Rules 2-6 require daysSinceLast to be non-null.
+    // If null (unparseable date + no lastInteractionAt), fall to QUIET — never DORMANT.
+    if (days == null) {
+      return RelationshipState.quiet;
+    }
+
+    // Rule 2: DORMANT (Precedence 2)
+    // Long-standing silence: >180 days AND relationship itself >180 days old.
+    if (days > 180 && ageDays > 180) {
       return RelationshipState.dormant;
     }
 
-    // Rule 2: NEGLECTED (Precedence 2)
-    // Meaningful past connection (>= 3 interactions or >= 2 memories),
-    // but no interactions for > 60 days, or has overdue follow-ups
-    if ((count >= 3 || memCount >= 2) &&
-        ((days != null && days > 60) || signals.hasOverdueFollowUp)) {
+    // Rule 3: NEGLECTED (Precedence 3)
+    // Established relationship (>=3 interactions) but lapsed or has overdue commitments.
+    if (count >= 3 && (days > 60 || signals.hasOverdueFollowUp)) {
       return RelationshipState.neglected;
     }
 
-    // Rule 3: COOLING (Precedence 3)
-    // Previously active (>= 2 interactions), but interaction recency is dropping (31â€“60 days)
-    if (count >= 2 && days != null && days >= 31 && days <= 60) {
+    // Rule 4: COOLING (Precedence 4)
+    // Established relationship (>=2 interactions) with declining recency (31-60 days).
+    if (count >= 2 && days >= 31 && days <= 60) {
       return RelationshipState.cooling;
     }
 
-    // Rule 4: STRONG (Precedence 4)
-    // High relationship strength (>= 70.0), >= 4 interactions, and recent interaction (<= 30 days)
-    if (score >= 70.0 && count >= 4 && signals.hasRecentInteraction) {
+    // Rule 5: STRONG (Precedence 5)
+    // High-strength, high-frequency, recent relationship.
+    if (score >= 70.0 && count >= 4 && days <= 30) {
       return RelationshipState.strong;
     }
 
-    // Rule 5: ACTIVE (Precedence 5)
-    // Recent interaction (<= 30 days) and at least 1 interaction
-    if (signals.hasRecentInteraction && count >= 1) {
+    // Rule 6: ACTIVE (Precedence 6)
+    // Recent interaction within last 30 days with at least 1 interaction.
+    if (days <= 30 && count >= 1) {
       return RelationshipState.active;
     }
 
-    // Rule 6: NEW (Precedence 6)
-    // Default fallback for new contacts or limited historical record
-    return RelationshipState.newRelationship;
+    // Rule 7: QUIET (Fallback)
+    // Any unmatched state: 1-2 interactions with silence, etc.
+    return RelationshipState.quiet;
   }
 }

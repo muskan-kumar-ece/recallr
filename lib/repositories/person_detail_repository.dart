@@ -15,11 +15,20 @@ abstract class PersonDetailRepository {
   /// Save or update a person memory profile.
   Future<void> saveProfile(PersonProfile profile);
 
+  /// Delete a person memory profile completely.
+  Future<void> deleteProfile(String personId);
+
   /// Add an encounter / timeline event to a person's history.
   Future<void> addTimelineItem(String personId, TimelineItem item);
 
+  /// Delete a specific timeline encounter from a person's history.
+  Future<void> deleteTimelineItem(String personId, String timelineId);
+
   /// Add an atomic verified memory claim to a person's dossier.
   Future<void> addMemoryItem(String personId, MemoryItem item);
+
+  /// Delete a specific memory item from a person's dossier.
+  Future<void> deleteMemoryItem(String personId, String memoryId);
 
   /// Atomically enrich person memory, timeline, and relationship statistics.
   Future<PersonProfile> enrichRelationshipMemory({

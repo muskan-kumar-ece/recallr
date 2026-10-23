@@ -45,7 +45,21 @@ class DeterministicRelationshipStrengthCalculator implements RelationshipStrengt
       _calculateFollowUpFactor(signals),
     ];
 
-    return RelationshipStrength.fromFactors(factors: factors);
+    final rawStrength = RelationshipStrength.fromFactors(factors: factors);
+
+    // Score cap: contacts with <=2 interactions OR relationship age <7 days
+    // must be capped at 30 to align with NEW status invariant.
+    final isNew = signals.interactionCount <= 2 || (signals.relationshipAgeDays > 0 && signals.relationshipAgeDays < 7);
+    if (isNew && rawStrength.score > 30.0) {
+      return RelationshipStrength(
+        score: 30.0,
+        factors: rawStrength.factors,
+        level: rawStrength.level,
+        summary: rawStrength.summary,
+      );
+    }
+
+    return rawStrength;
   }
 
   StrengthFactor _calculateRecencyFactor(RelationshipSignals signals) {

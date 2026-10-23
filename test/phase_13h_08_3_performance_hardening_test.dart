@@ -202,6 +202,15 @@ class QueryTrackingPersonDetailRepository implements PersonDetailRepository {
     String? relationshipStrength,
     int? sharedEventsCount,
   }) async {}
+  @override
+  Future<void> deleteProfile(String personId) async {}
+
+  @override
+  Future<void> deleteMemoryItem(String personId, String memoryId) async {}
+
+  @override
+  Future<void> deleteTimelineItem(String personId, String timelineId) async {}
+
 }
 
 class QueryTrackingActivityRepository implements ActivityRepository {

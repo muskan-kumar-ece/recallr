@@ -8,12 +8,14 @@ class GroundedAnswerCard extends StatelessWidget {
   final GroundedAnswer answer;
   final ValueChanged<String>? onFollowUpSelected;
   final VoidCallback? onNewQuestion;
+  final VoidCallback? onShare;
 
   const GroundedAnswerCard({
     super.key,
     required this.answer,
     this.onFollowUpSelected,
     this.onNewQuestion,
+    this.onShare,
   });
 
   @override
@@ -116,6 +118,28 @@ class GroundedAnswerCard extends StatelessWidget {
               height: 1.5,
             ),
           ),
+          if (onShare != null) ...[
+            RecallrSpacing.gapSm,
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onShare,
+                icon: const Icon(Icons.share_outlined, size: 14.0, color: RecallrColors.aiCyanHighlight),
+                label: Text(
+                  'Share Answer',
+                  style: RecallrTypography.labelSmall.copyWith(
+                    color: RecallrColors.aiCyanHighlight,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ),
+          ],
 
           // Follow-up Suggestions
           if (answer.followUpSuggestions.isNotEmpty) ...[

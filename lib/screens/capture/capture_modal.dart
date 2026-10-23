@@ -197,21 +197,30 @@ class _CaptureModalState extends State<CaptureModal> {
         mimeType: picked.mimeType,
       );
       final entities = OcrEntityExtractor.extract(ocrResult.text);
-      final personName = entities.name ?? picked.name;
-      final confidenceVal = (ocrResult.confidence ?? 0.95) * 100.0;
+      final personName = entities.name;
+      final nameConfidence = entities.confidence['name'] ?? (personName != null ? 0.9 : 0.0);
+      final needsConfirmation = nameConfidence < 0.7 || personName == null || personName.trim().isEmpty;
+      final displayTitle = personName ?? (entities.company != null && entities.company!.isNotEmpty ? entities.company! : 'Business Card');
+      final confidenceVal = nameConfidence * 100.0;
+
       reviewData = CaptureReviewData(
-        title: personName,
+        title: displayTitle,
         summary: 'Scanned visiting card with verified contact credentials.',
-        personName: entities.name ?? personName,
-        personRole: entities.role ?? 'Contact',
+        personName: personName,
+        personRole: entities.effectiveRole ?? 'Contact',
         companyName: entities.company ?? '',
         eventName: '',
-        location: entities.location ?? '',
+        location: entities.effectiveLocation ?? '',
+        address: entities.address ?? entities.location ?? '',
+        brands: entities.brands,
+        nameConfidence: nameConfidence,
+        needsNameConfirmation: needsConfirmation,
         date: entities.date ?? 'Today',
         bulletPoints: entities.keyPoints.isNotEmpty
             ? entities.keyPoints
             : [
-                'Card text detected with ${confidenceVal.toStringAsFixed(1)}% OCR confidence',
+                if (entities.brands.isNotEmpty) 'Brands: ${entities.brands.join(', ')}',
+                'Card text detected with ${confidenceVal.toStringAsFixed(1)}% name confidence',
                 if (entities.company != null && entities.company!.isNotEmpty)
                   '${entities.company} matched in network database',
               ],
@@ -226,6 +235,7 @@ class _CaptureModalState extends State<CaptureModal> {
         title: picked.name,
         summary: 'Scanned visiting card image captured.',
         date: 'Today',
+        needsNameConfirmation: true,
       );
     }
     if (mounted) {
@@ -689,6 +699,7 @@ class _CaptureModalState extends State<CaptureModal> {
               lastInteractionDate: DateTime.now(),
               initials: PersonItem.computeInitials(personName),
               capabilities: _reviewData!.bulletPoints.take(3).toList(),
+              brands: _reviewData!.brands,
               relationshipType: RelationshipContextType.collaborator,
             );
             final created = await _peopleRepo.createPersonFromCapture(newPerson);
@@ -812,6 +823,7 @@ class _CaptureModalState extends State<CaptureModal> {
             lastInteractionDate: DateTime.now(),
             initials: PersonItem.computeInitials(personName),
             capabilities: _reviewData!.bulletPoints.take(3).toList(),
+            brands: _reviewData!.brands,
             relationshipType: RelationshipContextType.collaborator,
           );
           final created = await _peopleRepo.createPersonFromCapture(newPerson);
@@ -1095,6 +1107,7 @@ class _CaptureModalState extends State<CaptureModal> {
       reviewData: _reviewData!,
       onEdit: () => setState(() => _state = CaptureState.capturing),
       onSave: _saveCapture,
+      onUpdateData: (newData) => setState(() => _reviewData = newData),
     );
   }
 

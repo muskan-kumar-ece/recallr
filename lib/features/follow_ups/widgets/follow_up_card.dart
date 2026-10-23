@@ -11,6 +11,8 @@ class FollowUpCard extends StatelessWidget {
   final VoidCallback? onTapPerson;
   final VoidCallback? onTapSource;
   final VoidCallback? onToggleComplete;
+  final VoidCallback? onShare;
+  final VoidCallback? onDelete;
 
   const FollowUpCard({
     super.key,
@@ -20,6 +22,8 @@ class FollowUpCard extends StatelessWidget {
     this.onTapPerson,
     this.onTapSource,
     this.onToggleComplete,
+    this.onShare,
+    this.onDelete,
   });
 
   String _getInitials(String name) {
@@ -269,6 +273,26 @@ class FollowUpCard extends StatelessWidget {
                         variant: RecallrButtonVariant.secondary,
                         leadingIcon: Icons.visibility_outlined,
                         onPressed: onTapSource ?? onTap,
+                      ),
+
+                    if (onShare != null)
+                      IconButton(
+                        icon: const Icon(Icons.share_outlined, size: 18.0, color: RecallrColors.textTertiary),
+                        tooltip: 'Share Commitment',
+                        splashRadius: 18.0,
+                        constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                        padding: const EdgeInsets.all(4.0),
+                        onPressed: onShare,
+                      ),
+
+                    if (onDelete != null)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 18.0, color: RecallrColors.textTertiary),
+                        tooltip: 'Delete Follow-up',
+                        splashRadius: 18.0,
+                        constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                        padding: const EdgeInsets.all(4.0),
+                        onPressed: onDelete,
                       ),
                   ],
                 ),

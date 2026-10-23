@@ -76,10 +76,10 @@ class RelationshipAttentionExplanation {
       ));
     }
 
-    // 6. Recent interaction review
+    // 6. Recent interaction review (only for non-new established contacts)
     if (signals.daysSinceLastInteraction != null &&
         signals.daysSinceLastInteraction! <= 2 &&
-        signals.interactionCount >= 1) {
+        signals.interactionCount >= 3) {
       final days = signals.daysSinceLastInteraction!;
       reasons.add(RelationshipAttentionReason(
         code: 'recent_interaction',
@@ -101,14 +101,20 @@ class RelationshipAttentionExplanation {
       ));
     }
 
-    // Fallback if no specific condition met
+    // Fallback: only add periodic review if relationship is established (count >= 3)
+    // AND the last interaction was more than 30 days ago.
+    // Never trigger for new contacts (count < 3) or recently active contacts.
     if (reasons.isEmpty) {
-      reasons.add(RelationshipAttentionReason(
-        code: 'general_review',
-        title: 'Periodic Review',
-        description: 'Periodic relationship check-in for $displayName.',
-        weight: 0.20,
-      ));
+      final days = signals.daysSinceLastInteraction;
+      final isEstablishedWithLapse = signals.interactionCount >= 3 && (days == null || days > 30);
+      if (isEstablishedWithLapse) {
+        reasons.add(RelationshipAttentionReason(
+          code: 'general_review',
+          title: 'Periodic Review',
+          description: 'Periodic relationship check-in for $displayName.',
+          weight: 0.20,
+        ));
+      }
     }
 
     return reasons;

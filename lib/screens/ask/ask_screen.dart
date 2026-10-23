@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
 import '../../core/security/security.dart';
 import '../../core/theme/theme.dart';
+import '../../core/utils/share_formatter.dart';
+import '../../core/widgets/share_bottom_sheet.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/firestore/firestore_memory_retrieval_repository.dart';
 import '../../features/ask/models/ai_answer_models.dart';
@@ -271,6 +273,22 @@ class _AskScreenState extends State<AskScreen> {
     }
   }
 
+  void _handleShareAnswer() {
+    if (_currentAnswer == null) return;
+    final text = ShareFormatter.formatAiAnswer(
+      query: _questionController.text,
+      answer: _currentAnswer!.answerText,
+      sources: _currentAnswer!.sources,
+    );
+    ShareBottomSheet.show(
+      context,
+      title: 'Share Grounded AI Answer',
+      subtitle: _questionController.text,
+      textSummary: text,
+      shareSubject: 'Recallr AI: ${_questionController.text}',
+    );
+  }
+
   void clearConversation() {
     setState(() {
       _questionController.clear();
@@ -347,6 +365,7 @@ class _AskScreenState extends State<AskScreen> {
                               answer: _currentAnswer!,
                               onFollowUpSelected: _performAsk,
                               onNewQuestion: clearConversation,
+                              onShare: _handleShareAnswer,
                             ),
                             RecallrSpacing.gapLg,
                             if (_currentAnswer!.relatedPeople.isNotEmpty) ...[

@@ -19,7 +19,10 @@ enum RelationshipState {
   neglected,
 
   /// Long-standing connection with no interaction in over 180 days.
-  dormant;
+  dormant,
+
+  /// Fallback for 1-2 interactions with 31-180 days of silence, or any other unmatched state.
+  quiet;
 
   /// Human-readable display name.
   String get displayName {
@@ -36,6 +39,8 @@ enum RelationshipState {
         return 'Neglected';
       case RelationshipState.dormant:
         return 'Dormant';
+      case RelationshipState.quiet:
+        return 'Quiet';
     }
   }
 
@@ -54,6 +59,8 @@ enum RelationshipState {
         return 'NEGLECTED';
       case RelationshipState.dormant:
         return 'DORMANT';
+      case RelationshipState.quiet:
+        return 'QUIET';
     }
   }
 
@@ -72,6 +79,8 @@ enum RelationshipState {
         return 'Meaningful connection with no recent contact or overdue commitments.';
       case RelationshipState.dormant:
         return 'Long-standing relationship with no recorded interactions for over 6 months.';
+      case RelationshipState.quiet:
+        return 'Minimal interaction history with a period of silence.';
     }
   }
 
@@ -90,6 +99,8 @@ enum RelationshipState {
         return RecallrColors.textTertiary;
       case RelationshipState.newRelationship:
         return RecallrColors.aiElectricViolet;
+      case RelationshipState.quiet:
+        return RecallrColors.textTertiary;
     }
   }
 
@@ -114,6 +125,8 @@ enum RelationshipState {
         return 2;
       case RelationshipState.newRelationship:
         return 1;
+      case RelationshipState.quiet:
+        return 0;
     }
   }
 

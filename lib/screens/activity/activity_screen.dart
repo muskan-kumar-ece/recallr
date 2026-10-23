@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
 import '../../core/theme/theme.dart';
+import '../../core/utils/share_formatter.dart';
+import '../../core/widgets/destructive_confirm_dialog.dart';
+import '../../core/widgets/share_bottom_sheet.dart';
 import '../../core/widgets/widgets.dart';
 import '../../features/activity/models/activity_models.dart';
 import '../../features/activity/widgets/activity_detail_context.dart';
@@ -220,6 +223,73 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
+  void _handleShareActivity(ActivityItem activity) {
+    final note = ShareFormatter.formatActivityNote(activity);
+    ShareBottomSheet.show(
+      context,
+      title: 'Share Encounter Note',
+      subtitle: activity.title,
+      textSummary: note,
+      shareSubject: 'Encounter Note: ${activity.title}',
+    );
+  }
+
+  Future<void> _handleDeleteActivity(ActivityItem activity) async {
+    final confirmed = await DestructiveConfirmDialog.show(
+      context,
+      title: 'Delete Activity Record',
+      message: 'Are you sure you want to remove "${activity.title}" from your chronological timeline?',
+      confirmLabel: 'Delete Activity',
+    );
+
+    if (confirmed && mounted) {
+      final repo = widget.repository ?? (mounted ? context.activityRepo : RecallrDependencies.instance.activityRepository);
+      try {
+        await repo.deleteActivity(activity.id);
+        if (mounted) {
+          setState(() {
+            _allActivities.removeWhere((a) => a.id == activity.id);
+            if (_selectedActivityId == activity.id) {
+              _selectedActivityId = _allActivities.isNotEmpty ? _allActivities.first.id : null;
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Removed "${activity.title}"'),
+              backgroundColor: RecallrColors.slateSurface,
+              action: SnackBarAction(
+                label: 'Undo',
+                textColor: RecallrColors.aiCyanHighlight,
+                onPressed: () async {
+                  await repo.addActivity(activity);
+                  if (mounted) {
+                    setState(() {
+                      _allActivities.add(activity);
+                      _allActivities.sort((a, b) {
+                        final aDate = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+                        final bDate = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+                        return bDate.compareTo(aDate);
+                      });
+                    });
+                  }
+                },
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to delete activity: $e'),
+              backgroundColor: RecallrColors.crimsonAlert,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isError) {
@@ -360,6 +430,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 activities: filtered,
                 selectedActivityId: _selectedActivityId,
                 onTapActivity: _onActivitySelected,
+                onShareActivity: _handleShareActivity,
+                onDeleteActivity: _handleDeleteActivity,
               ),
             ),
           ),

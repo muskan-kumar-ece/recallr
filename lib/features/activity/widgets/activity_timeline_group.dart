@@ -11,6 +11,8 @@ class ActivityTimelineGroup extends StatelessWidget {
   final String? selectedActivityId;
   final void Function(ActivityItem item)? onTapActivity;
   final void Function(String personId)? onTapPerson;
+  final void Function(ActivityItem item)? onShareActivity;
+  final void Function(ActivityItem item)? onDeleteActivity;
 
   const ActivityTimelineGroup({
     super.key,
@@ -19,6 +21,8 @@ class ActivityTimelineGroup extends StatelessWidget {
     this.selectedActivityId,
     this.onTapActivity,
     this.onTapPerson,
+    this.onShareActivity,
+    this.onDeleteActivity,
   });
 
   @override
@@ -77,6 +81,8 @@ class ActivityTimelineGroup extends StatelessWidget {
             return ActivityCard(
               activity: item,
               isSelected: item.id == selectedActivityId,
+              onShare: onShareActivity != null ? () => onShareActivity!(item) : null,
+              onDelete: onDeleteActivity != null ? () => onDeleteActivity!(item) : null,
               onTap: () {
                 if (onTapActivity != null) {
                   onTapActivity!(item);

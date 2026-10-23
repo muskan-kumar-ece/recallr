@@ -100,6 +100,7 @@ class DeterministicRelationshipMemoryService implements RelationshipMemoryServic
         await peopleRepository!.enrichPerson(person.id, {
           'lastInteraction': capture.timestamp.isNotEmpty ? capture.timestamp : 'Today',
           'lastInteractionDate': DateTime.now(),
+          'lastInteractionAt': DateTime.now(),
         });
       }
 

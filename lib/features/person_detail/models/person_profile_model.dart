@@ -224,6 +224,7 @@ class PersonProfile {
   final String aiSummary;
   final List<String> keyTakeaways;
   final List<String> capabilities;
+  final List<String> brands;
   final List<TimelineItem> timeline;
   final List<MemoryItem> memories;
   final List<FollowUpItem> followUps;
@@ -232,6 +233,7 @@ class PersonProfile {
   final String? userId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? lastInteractionAt;
 
   const PersonProfile({
     required this.id,
@@ -252,6 +254,7 @@ class PersonProfile {
     required this.aiSummary,
     this.keyTakeaways = const [],
     this.capabilities = const [],
+    this.brands = const [],
     this.timeline = const [],
     this.memories = const [],
     this.followUps = const [],
@@ -260,6 +263,7 @@ class PersonProfile {
     this.userId,
     this.createdAt,
     this.updatedAt,
+    this.lastInteractionAt,
   });
 
   static String computeInitials(String name) {
@@ -292,6 +296,7 @@ class PersonProfile {
       'aiSummary': aiSummary,
       'keyTakeaways': keyTakeaways,
       'capabilities': capabilities,
+      'brands': brands,
       'timeline': timeline.map((e) => e.toMap()).toList(),
       'memories': memories.map((e) => e.toMap()).toList(),
       'followUps': followUps.map((e) => e.toMap()).toList(),
@@ -300,6 +305,7 @@ class PersonProfile {
       'userId': userId,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'lastInteractionAt': lastInteractionAt != null ? Timestamp.fromDate(lastInteractionAt!) : null,
     };
   }
 
@@ -335,6 +341,7 @@ class PersonProfile {
       aiSummary: map['aiSummary']?.toString() ?? '',
       keyTakeaways: (map['keyTakeaways'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       capabilities: (map['capabilities'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ?? const [],
       timeline: (map['timeline'] as List?)
               ?.map((e) => e is Map<String, dynamic> ? TimelineItem.fromMap(e) : null)
               .whereType<TimelineItem>()
@@ -360,6 +367,7 @@ class PersonProfile {
       userId: map['userId']?.toString(),
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
+      lastInteractionAt: parseDate(map['lastInteractionAt']),
     );
   }
 
@@ -387,6 +395,7 @@ class PersonProfile {
     String? aiSummary,
     List<String>? keyTakeaways,
     List<String>? capabilities,
+    List<String>? brands,
     List<TimelineItem>? timeline,
     List<MemoryItem>? memories,
     List<FollowUpItem>? followUps,
@@ -395,6 +404,7 @@ class PersonProfile {
     String? userId,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? lastInteractionAt,
   }) {
     return PersonProfile(
       id: id ?? this.id,
@@ -415,6 +425,7 @@ class PersonProfile {
       aiSummary: aiSummary ?? this.aiSummary,
       keyTakeaways: keyTakeaways ?? this.keyTakeaways,
       capabilities: capabilities ?? this.capabilities,
+      brands: brands ?? this.brands,
       timeline: timeline ?? this.timeline,
       memories: memories ?? this.memories,
       followUps: followUps ?? this.followUps,
@@ -423,6 +434,7 @@ class PersonProfile {
       userId: userId ?? this.userId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      lastInteractionAt: lastInteractionAt ?? this.lastInteractionAt,
     );
   }
 }

@@ -46,11 +46,12 @@ class DeterministicRelationshipAttentionPriorityCalculator
     }
 
     // Rule 3: MEDIUM (Precedence 3)
-    // Attention score >= 40 OR cooling relationship OR active follow-up OR established contact
+    // Attention score >= 40 OR cooling relationship OR active follow-up.
+    // NOTE: interactionCount >= 2 alone does NOT trigger medium priority —
+    // new contacts with 2 interactions must not receive attention alerts.
     if (attentionScore >= 40.0 ||
         state == RelationshipState.cooling ||
-        signals.activeFollowUpCount > 0 ||
-        signals.interactionCount >= 2) {
+        signals.activeFollowUpCount > 0) {
       return RelationshipAttentionPriority.medium;
     }
 

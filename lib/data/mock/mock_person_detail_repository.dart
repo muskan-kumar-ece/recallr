@@ -157,4 +157,35 @@ class MockPersonDetailRepository implements PersonDetailRepository {
       _store[personId] = updated;
     }
   }
+
+  @override
+  Future<void> deleteProfile(String personId) async {
+    _store.remove(personId);
+  }
+
+  @override
+  Future<void> deleteMemoryItem(String personId, String memoryId) async {
+    final existing = await getProfile(personId);
+    if (existing != null) {
+      final updatedMemories = existing.memories.where((m) => m.id != memoryId).toList();
+      final updated = existing.copyWith(
+        memories: updatedMemories,
+        updatedAt: DateTime.now(),
+      );
+      _store[personId] = updated;
+    }
+  }
+
+  @override
+  Future<void> deleteTimelineItem(String personId, String timelineId) async {
+    final existing = await getProfile(personId);
+    if (existing != null) {
+      final updatedTimeline = existing.timeline.where((t) => t.id != timelineId).toList();
+      final updated = existing.copyWith(
+        timeline: updatedTimeline,
+        updatedAt: DateTime.now(),
+      );
+      _store[personId] = updated;
+    }
+  }
 }

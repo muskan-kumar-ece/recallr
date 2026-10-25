@@ -80,45 +80,6 @@ export const generateGroundedAnswer = onCall(
       );
     }
 
-    // 3. Verify user credit quota before invoking upstream AI
-    const subDocRef = db.collection("users").doc(uid).collection("subscription").doc("current");
-    const subSnap = await subDocRef.get();
-
-    let subData = subSnap.data();
-    if (!subSnap.exists || !subData) {
-      // Lazily initialize default Starter subscription
-      const now = new Date();
-      const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      subData = {
-        tier: "starter",
-        status: "active",
-        currency: "INR",
-        storageLimitBytes: 104857600, // 100 MB
-        storageUsedBytes: 0,
-        monthlyCreditsTotal: 20,
-        monthlyCreditsUsed: 0,
-        purchasedCredits: 0,
-        currentPeriodStart: Timestamp.fromDate(now),
-        currentPeriodEnd: Timestamp.fromDate(periodEnd),
-        billingProvider: "mock",
-        updatedAt: FieldValue.serverTimestamp(),
-      };
-      await subDocRef.set(subData, { merge: true });
-    }
-
-    const monthlyTotal = typeof subData.monthlyCreditsTotal === "number" ? subData.monthlyCreditsTotal : 20;
-    const monthlyUsed = typeof subData.monthlyCreditsUsed === "number" ? subData.monthlyCreditsUsed : 0;
-    const purchased = typeof subData.purchasedCredits === "number" ? subData.purchasedCredits : 0;
-    const availableMonthly = Math.max(0, monthlyTotal - monthlyUsed);
-    const totalAvailable = availableMonthly + purchased;
-
-    if (totalAvailable < 1) {
-      throw new HttpsError(
-        "resource-exhausted",
-        "AI credits exhausted. Top up 150 credits for ₹19 or upgrade to Pro."
-      );
-    }
-
     let systemInstruction = "";
     if (data.systemInstruction && typeof data.systemInstruction === "string") {
       if (data.systemInstruction.length > 10000) {
@@ -141,6 +102,79 @@ export const generateGroundedAnswer = onCall(
     const maxOutputTokens = typeof data.maxOutputTokens === "number"
       ? Math.max(16, Math.min(4096, data.maxOutputTokens))
       : 1024;
+
+    // 3. Atomically check and reserve user credit BEFORE invoking upstream AI (Anti-concurrency overdraft)
+    const subDocRef = db.collection("users").doc(uid).collection("subscription").doc("current");
+    let remainingCreditsAfter = 0;
+    let deductedFrom: "monthly" | "purchased" = "monthly";
+
+    await db.runTransaction(async (tx) => {
+      const subSnap = await tx.get(subDocRef);
+      let subData = subSnap.data();
+      if (!subSnap.exists || !subData) {
+        // Lazily initialize default Starter subscription
+        const now = new Date();
+        const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        subData = {
+          tier: "starter",
+          status: "active",
+          currency: "INR",
+          storageLimitBytes: 104857600, // 100 MB
+          storageUsedBytes: 0,
+          monthlyCreditsTotal: 20,
+          monthlyCreditsUsed: 0,
+          purchasedCredits: 0,
+          currentPeriodStart: Timestamp.fromDate(now),
+          currentPeriodEnd: Timestamp.fromDate(periodEnd),
+          billingProvider: "mock",
+          updatedAt: FieldValue.serverTimestamp(),
+        };
+        tx.set(subDocRef, subData);
+      }
+
+      const monthlyTotal = typeof subData.monthlyCreditsTotal === "number" ? subData.monthlyCreditsTotal : 20;
+      const monthlyUsed = typeof subData.monthlyCreditsUsed === "number" ? subData.monthlyCreditsUsed : 0;
+      const purchased = typeof subData.purchasedCredits === "number" ? subData.purchasedCredits : 0;
+      const availableMonthly = Math.max(0, monthlyTotal - monthlyUsed);
+      const totalAvailable = availableMonthly + purchased;
+
+      if (totalAvailable < 1) {
+        throw new HttpsError(
+          "resource-exhausted",
+          "AI credits exhausted. Top up 150 credits for ₹19 or upgrade to Pro."
+        );
+      }
+
+      let newMonthlyUsed = monthlyUsed;
+      let newPurchased = purchased;
+      if (availableMonthly > 0) {
+        newMonthlyUsed += 1;
+        deductedFrom = "monthly";
+      } else {
+        newPurchased -= 1;
+        deductedFrom = "purchased";
+      }
+
+      remainingCreditsAfter = Math.max(0, (monthlyTotal - newMonthlyUsed) + newPurchased);
+
+      tx.update(subDocRef, {
+        monthlyCreditsUsed: newMonthlyUsed,
+        purchasedCredits: newPurchased,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+
+      const ledgerRef = db.collection("users").doc(uid).collection("credit_ledger").doc();
+      tx.set(ledgerRef, {
+        id: ledgerRef.id,
+        timestamp: FieldValue.serverTimestamp(),
+        type: "debit",
+        amount: 1,
+        reason: "ask_query",
+        metadata: {
+          model: modelName,
+        },
+      });
+    });
 
     // 4. Retrieve API Key securely from Secret Manager (or fallback to env in local emulator)
     const apiKey = geminiApiKey.value() || process.env.GEMINI_API_KEY;
@@ -184,52 +218,6 @@ export const generateGroundedAnswer = onCall(
       const finishReason = candidate?.finishReason ?? null;
       const usage = response.usageMetadata;
 
-      // 6. Atomically deduct credit & log transaction ledger
-      let remainingCreditsAfter = totalAvailable - 1;
-      try {
-        await db.runTransaction(async (tx) => {
-          const freshSnap = await tx.get(subDocRef);
-          const freshData = freshSnap.data() || subData;
-          const freshMonthlyTotal = typeof freshData.monthlyCreditsTotal === "number" ? freshData.monthlyCreditsTotal : 20;
-          const freshMonthlyUsed = typeof freshData.monthlyCreditsUsed === "number" ? freshData.monthlyCreditsUsed : 0;
-          const freshPurchased = typeof freshData.purchasedCredits === "number" ? freshData.purchasedCredits : 0;
-
-          let newMonthlyUsed = freshMonthlyUsed;
-          let newPurchased = freshPurchased;
-
-          if (freshMonthlyTotal - freshMonthlyUsed > 0) {
-            newMonthlyUsed += 1;
-          } else if (freshPurchased > 0) {
-            newPurchased -= 1;
-          }
-
-          remainingCreditsAfter = Math.max(0, (freshMonthlyTotal - newMonthlyUsed) + newPurchased);
-
-          tx.update(subDocRef, {
-            monthlyCreditsUsed: newMonthlyUsed,
-            purchasedCredits: newPurchased,
-            updatedAt: FieldValue.serverTimestamp(),
-          });
-
-          const ledgerRef = db.collection("users").doc(uid).collection("credit_ledger").doc();
-          tx.set(ledgerRef, {
-            id: ledgerRef.id,
-            timestamp: FieldValue.serverTimestamp(),
-            type: "debit",
-            amount: 1,
-            reason: "ask_query",
-            metadata: {
-              promptTokens: usage?.promptTokenCount ?? null,
-              candidateTokens: usage?.candidatesTokenCount ?? null,
-              model: modelName,
-            },
-          });
-        });
-      } catch (ledgerErr) {
-        // Log ledger failure but do not crash user response
-        console.error("Failed to commit credit ledger deduction:", ledgerErr);
-      }
-
       return {
         text,
         finishReason,
@@ -238,6 +226,42 @@ export const generateGroundedAnswer = onCall(
         remainingCredits: remainingCreditsAfter,
       };
     } catch (err: any) {
+      // Compensating transaction: Refund deducted credit if Gemini generation failed
+      try {
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(subDocRef);
+          if (snap.exists) {
+            const data = snap.data() || {};
+            if (deductedFrom === "monthly") {
+              const used = typeof data.monthlyCreditsUsed === "number" ? data.monthlyCreditsUsed : 1;
+              tx.update(subDocRef, {
+                monthlyCreditsUsed: Math.max(0, used - 1),
+                updatedAt: FieldValue.serverTimestamp(),
+              });
+            } else {
+              const currentPurchased = typeof data.purchasedCredits === "number" ? data.purchasedCredits : 0;
+              tx.update(subDocRef, {
+                purchasedCredits: currentPurchased + 1,
+                updatedAt: FieldValue.serverTimestamp(),
+              });
+            }
+            const refundLedgerRef = db.collection("users").doc(uid).collection("credit_ledger").doc();
+            tx.set(refundLedgerRef, {
+              id: refundLedgerRef.id,
+              timestamp: FieldValue.serverTimestamp(),
+              type: "credit",
+              amount: 1,
+              reason: "generation_failure_refund",
+              metadata: {
+                error: err?.message || String(err),
+              },
+            });
+          }
+        });
+      } catch (refundErr) {
+        console.error("Credit refund transaction failed:", refundErr);
+      }
+
       if (err instanceof HttpsError) {
         throw err;
       }
@@ -259,6 +283,7 @@ export const generateGroundedAnswer = onCall(
         throw new HttpsError("invalid-argument", "The model rejected the prompt format.");
       }
 
+      console.error("Gemini invocation failed:", err);
       throw new HttpsError("internal", `Gemini generation failed: ${err?.message || "unknown error"}`);
     }
   }
@@ -455,7 +480,7 @@ export const verifyRazorpayPayment = onCall(
       throw new HttpsError("unauthenticated", "User must be authenticated to verify payments.");
     }
 
-    const { orderId, paymentId, signature, catalogId, isTestMode } = request.data || {};
+    const { orderId, paymentId, signature, catalogId } = request.data || {};
     if (!orderId || !paymentId || !catalogId || !CATALOG[catalogId]) {
       throw new HttpsError("invalid-argument", "Missing or invalid payment verification parameters.");
     }
@@ -464,9 +489,15 @@ export const verifyRazorpayPayment = onCall(
     const uid = request.auth.uid;
 
     const secret = process.env.RAZORPAY_KEY_SECRET;
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
 
-    // Verify HMAC SHA256 signature if not simulated test mode
-    if (!isTestMode && secret) {
+    // 1. Mandatory server-side cryptographic signature verification
+    if (!secret && !isEmulator) {
+      console.error("RAZORPAY_KEY_SECRET is not configured on the server.");
+      throw new HttpsError("failed-precondition", "Server payment configuration error.");
+    }
+
+    if (secret) {
       if (!signature) {
         throw new HttpsError("invalid-argument", "Payment signature is required.");
       }
@@ -481,7 +512,8 @@ export const verifyRazorpayPayment = onCall(
       }
     }
 
-    // Atomic update to user subscription and credit ledger
+    // 2. Atomic update with payment idempotency & replay protection
+    const paymentLockRef = db.collection("processed_payments").doc(paymentId);
     const subDocRef = db.collection("users").doc(uid).collection("subscription").doc("current");
     const ledgerRef = db.collection("users").doc(uid).collection("credit_ledger").doc();
 
@@ -489,6 +521,22 @@ export const verifyRazorpayPayment = onCall(
     let updatedTier = "starter";
 
     await db.runTransaction(async (tx) => {
+      // Replay defense: verify payment has not been processed previously
+      const paymentLockSnap = await tx.get(paymentLockRef);
+      if (paymentLockSnap.exists) {
+        throw new HttpsError("already-exists", "This payment has already been verified and processed.");
+      }
+
+      // Atomically record payment lock
+      tx.set(paymentLockRef, {
+        paymentId,
+        orderId,
+        uid,
+        catalogId: item.id,
+        amountPaise: item.amountPaise,
+        processedAt: FieldValue.serverTimestamp(),
+      });
+
       const subSnap = await tx.get(subDocRef);
       const subData = subSnap.exists ? subSnap.data() || {} : {};
 

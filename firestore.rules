@@ -79,17 +79,37 @@ service cloud.firestore {
     
     // Subcollection: User Subscription & Quota (/users/{userId}/subscription/current)
     match /users/{userId}/subscription/{subId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      // Client may only initialize default starter subscription
+      allow create: if isOwner(userId)
+        && subId == 'current'
+        && request.resource.data.tier == 'starter'
+        && request.resource.data.monthlyCreditsTotal == 20
+        && request.resource.data.monthlyCreditsUsed == 0
+        && request.resource.data.purchasedCredits == 0
+        && request.resource.data.storageLimitBytes == 104857600;
+      // Client may update storage usage or preferences, but entitlements are immutable from client
+      allow update: if isOwner(userId)
+        && subId == 'current'
+        && request.resource.data.tier == resource.data.tier
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.monthlyCreditsTotal == resource.data.monthlyCreditsTotal
+        && request.resource.data.monthlyCreditsUsed == resource.data.monthlyCreditsUsed
+        && request.resource.data.purchasedCredits == resource.data.purchasedCredits
+        && request.resource.data.storageLimitBytes == resource.data.storageLimitBytes;
+      allow delete: if false;
     }
 
     // Subcollection: Credit Ledger (/users/{userId}/credit_ledger/{ledgerId})
     match /users/{userId}/credit_ledger/{ledgerId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      // Immutable server audit log; client writes are strictly denied
+      allow write: if false;
     }
-    
-    // Catch-all for any other nested subcollections under /users/{userId}
-    match /users/{userId}/{document=**} {
-      allow read, write: if isOwner(userId);
+
+    // Server-only processed payments lock collection (Replay attack defense)
+    match /processed_payments/{paymentId} {
+      allow read, write: if false;
     }
     
     // Legacy top-level items collection (Secured: strictly isolated to document owner, immutable userId)

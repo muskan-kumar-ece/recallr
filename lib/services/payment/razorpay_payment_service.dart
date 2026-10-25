@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -7,11 +8,12 @@ import '../../core/logging/safe_logger.dart';
 import '../../features/subscription/models/subscription_models.dart';
 import '../../repositories/subscription_repository.dart';
 import 'payment_service.dart';
+import 'web_checkout_bridge.dart';
 
 class RazorpayPaymentService implements PaymentService {
   static final SafeLogger _logger = SafeLogger('RazorpayPaymentService');
 
-  final FirebaseFunctions _functions;
+  final FirebaseFunctions? _functionsOverride;
   final SubscriptionRepository? _subscriptionRepository;
   final String? _keyIdOverride;
 
@@ -23,15 +25,23 @@ class RazorpayPaymentService implements PaymentService {
     FirebaseFunctions? functions,
     SubscriptionRepository? subscriptionRepository,
     String? keyIdOverride,
-  })  : _functions = functions ?? FirebaseFunctions.instance,
+  })  : _functionsOverride = functions,
         _subscriptionRepository = subscriptionRepository,
-        _keyIdOverride = keyIdOverride {
-    if (!kIsWeb) {
-      _initNativeRazorpay();
+        _keyIdOverride = keyIdOverride;
+
+  FirebaseFunctions get _functions {
+    final override = _functionsOverride;
+    if (override != null) return override;
+    try {
+      return FirebaseFunctions.instance;
+    } catch (_) {
+      return FirebaseFunctions.instanceFor(region: 'us-central1');
     }
   }
 
-  void _initNativeRazorpay() {
+  void _ensureNativeRazorpay() {
+    if (kIsWeb) return;
+    if (_nativeRazorpay != null) return;
     try {
       _nativeRazorpay = Razorpay();
       _nativeRazorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handleNativeSuccess);
@@ -90,20 +100,8 @@ class RazorpayPaymentService implements PaymentService {
       final orderId = orderData['orderId'] as String;
       final amount = orderData['amount'] as int;
       final keyId = _keyIdOverride ?? (orderData['keyId'] as String);
-      final isTestMode = (orderData['isTestMode'] as bool?) ?? false;
 
-      // 2. If simulated test mode without active keys, fulfill directly
-      if (isTestMode && (keyId.contains('placeholder') || keyId.isEmpty)) {
-        return await _verifyAndFulfill(
-          orderId: orderId,
-          paymentId: 'pay_test_${DateTime.now().millisecondsSinceEpoch}',
-          signature: 'sig_test_simulated',
-          catalogId: catalogId,
-          isTestMode: true,
-        );
-      }
-
-      // 3. Launch Checkout sheet
+      // 2. Launch Checkout sheet
       final completer = Completer<PaymentResult>();
       _activeCompleter = completer;
 
@@ -128,10 +126,11 @@ class RazorpayPaymentService implements PaymentService {
         _openWebCheckout(options, orderId, catalogId);
       } else {
         // Mobile Native Checkout
+        _ensureNativeRazorpay();
         if (_nativeRazorpay == null) {
-          _initNativeRazorpay();
+          throw StateError('Native Razorpay SDK could not be initialized on this platform.');
         }
-        _nativeRazorpay?.open(options);
+        _nativeRazorpay!.open(options);
       }
 
       return await completer.future;
@@ -144,27 +143,45 @@ class RazorpayPaymentService implements PaymentService {
   }
 
   void _openWebCheckout(Map<String, dynamic> options, String orderId, String catalogId) {
-    // In web tests or non-browser environments, handle gracefully
-    // Standard web JS interop is handled via postMessage or callback
     try {
-      // Direct verification fallback for web preview environments
-      _verifyAndFulfill(
-        orderId: orderId,
-        paymentId: 'pay_web_${DateTime.now().millisecondsSinceEpoch}',
-        signature: 'sig_web_preview',
-        catalogId: catalogId,
-        isTestMode: true,
-      ).then((res) {
-        if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
-          _activeCompleter!.complete(res);
-        }
-      }).catchError((err) {
-        if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
-          _activeCompleter!.complete(
-            PaymentResult.failed(errorMessage: err.toString(), orderId: orderId),
-          );
-        }
-      });
+      openWebRazorpayCheckout(
+        optionsJson: jsonEncode(options),
+        onSuccess: (responseJson) async {
+          try {
+            final respMap = jsonDecode(responseJson) as Map<String, dynamic>;
+            final paymentId = respMap['razorpay_payment_id'] as String? ?? '';
+            final signature = respMap['razorpay_signature'] as String? ?? '';
+            final returnedOrderId = respMap['razorpay_order_id'] as String? ?? orderId;
+
+            final result = await _verifyAndFulfill(
+              orderId: returnedOrderId,
+              paymentId: paymentId,
+              signature: signature,
+              catalogId: catalogId,
+            );
+            if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
+              _activeCompleter!.complete(result);
+            }
+          } catch (e) {
+            if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
+              _activeCompleter!.complete(
+                PaymentResult.failed(errorMessage: 'Web verification error: $e', orderId: orderId),
+              );
+            }
+          }
+        },
+        onError: (errStr) {
+          if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
+            if (errStr.contains('CANCELLED')) {
+              _activeCompleter!.complete(PaymentResult.cancelled());
+            } else {
+              _activeCompleter!.complete(
+                PaymentResult.failed(errorMessage: errStr, orderId: orderId),
+              );
+            }
+          }
+        },
+      );
     } catch (e) {
       if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
         _activeCompleter!.complete(
@@ -182,7 +199,6 @@ class RazorpayPaymentService implements PaymentService {
         paymentId: response.paymentId ?? '',
         signature: response.signature ?? '',
         catalogId: catalogId,
-        isTestMode: false,
       );
       if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
         _activeCompleter!.complete(res);
@@ -222,7 +238,6 @@ class RazorpayPaymentService implements PaymentService {
     required String paymentId,
     required String signature,
     required String catalogId,
-    required bool isTestMode,
   }) async {
     try {
       final verifyCallable = _functions.httpsCallable('verifyRazorpayPayment');
@@ -231,7 +246,6 @@ class RazorpayPaymentService implements PaymentService {
         'paymentId': paymentId,
         'signature': signature,
         'catalogId': catalogId,
-        'isTestMode': isTestMode,
       });
 
       final data = Map<String, dynamic>.from(resp.data as Map);
@@ -252,7 +266,6 @@ class RazorpayPaymentService implements PaymentService {
       );
     } catch (e, st) {
       _logger.error('Payment verification failed', e, st);
-      // If offline/in test mode without cloud functions emulator, apply mock repo directly
       final subRepo = _subscriptionRepository;
       if (subRepo != null) {
         if (catalogId.contains('150') || catalogId.contains('500') || catalogId.contains('1500')) {

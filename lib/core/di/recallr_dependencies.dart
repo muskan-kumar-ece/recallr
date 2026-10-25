@@ -26,6 +26,9 @@ import '../../repositories/person_detail_repository.dart';
 import '../../repositories/subscription_repository.dart';
 import '../../data/firestore/firestore_subscription_repository.dart';
 import '../../data/mock/mock_subscription_repository.dart';
+import '../../services/payment/payment_service.dart';
+import '../../services/payment/razorpay_payment_service.dart';
+import '../../services/payment/mock_payment_service.dart';
 import '../../services/audio_recorder_service.dart';
 import '../../services/capture_processing_service.dart';
 import '../../services/entity_resolution_service.dart';
@@ -140,6 +143,7 @@ class RecallrDependencies {
   final TelemetryService telemetryService;
   final PerformanceTracker performanceTracker;
   final SubscriptionRepository subscriptionRepository;
+  final PaymentService paymentService;
 
   RecallrDependencies({
     required this.peopleRepository,
@@ -148,6 +152,7 @@ class RecallrDependencies {
     required this.followUpRepository,
     required this.captureRepository,
     SubscriptionRepository? subscriptionRepository,
+    PaymentService? paymentService,
     MediaStorageRepository? mediaStorageRepository,
     MediaPickerService? mediaPickerService,
     AudioRecorderService? audioRecorderService,
@@ -199,6 +204,7 @@ class RecallrDependencies {
         performanceTracker = performanceTracker ??
             PerformanceTracker(telemetryService ?? ProductionTelemetryService()),
         subscriptionRepository = subscriptionRepository ?? MockSubscriptionRepository(),
+        paymentService = paymentService ?? MockPaymentService(subscriptionRepository: subscriptionRepository ?? MockSubscriptionRepository()),
         mediaStorageRepository = mediaStorageRepository ?? MockMediaStorageRepository(),
         mediaPickerService = mediaPickerService ?? MockMediaPickerService(),
         audioRecorderService = audioRecorderService ?? MockAudioRecorderService(),
@@ -421,6 +427,7 @@ class RecallrDependencies {
     FollowUpRepository? followUpRepository,
     CaptureRepository? captureRepository,
     SubscriptionRepository? subscriptionRepository,
+    PaymentService? paymentService,
     MediaStorageRepository? mediaStorageRepository,
     MediaPickerService? mediaPickerService,
     AudioRecorderService? audioRecorderService,
@@ -629,6 +636,7 @@ class RecallrDependencies {
       followUpRepository: followUpRepo,
       captureRepository: captureRepo,
       subscriptionRepository: subRepo,
+      paymentService: paymentService ?? RazorpayPaymentService(functions: functions, subscriptionRepository: subRepo),
       mediaStorageRepository: FirebaseMediaStorageRepository(storage: storage, auth: auth, subscriptionRepository: subRepo),
       mediaPickerService: DeviceMediaPickerService(),
       audioRecorderService: DeviceAudioRecorderService(),
@@ -683,6 +691,7 @@ class RecallrDependencies {
     FollowUpRepository? followUpRepository,
     CaptureRepository? captureRepository,
     SubscriptionRepository? subscriptionRepository,
+    PaymentService? paymentService,
     MediaStorageRepository? mediaStorageRepository,
     MediaPickerService? mediaPickerService,
     AudioRecorderService? audioRecorderService,
@@ -888,6 +897,7 @@ class RecallrDependencies {
       followUpRepository: followUpRepo,
       captureRepository: captureRepo,
       subscriptionRepository: subscriptionRepository ?? MockSubscriptionRepository(),
+      paymentService: paymentService ?? MockPaymentService(subscriptionRepository: subscriptionRepository ?? MockSubscriptionRepository()),
       mediaStorageRepository: mediaStorageRepository ?? MockMediaStorageRepository(),
       mediaPickerService: mediaPickerService ?? MockMediaPickerService(),
       audioRecorderService: audioRecorderService ?? MockAudioRecorderService(),
@@ -977,6 +987,7 @@ extension RecallrDependenciesContext on BuildContext {
   FollowUpRepository get followUpRepo => dependencies.followUpRepository;
   CaptureRepository get captureRepo => dependencies.captureRepository;
   SubscriptionRepository get subscriptionRepo => dependencies.subscriptionRepository;
+  PaymentService get paymentService => dependencies.paymentService;
   MediaStorageRepository get mediaStorageRepo => dependencies.mediaStorageRepository;
   MediaPickerService get mediaPickerService => dependencies.mediaPickerService;
   AudioRecorderService get audioRecorderService => dependencies.audioRecorderService;

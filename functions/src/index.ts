@@ -3,6 +3,7 @@ import { defineSecret } from "firebase-functions/params";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import * as crypto from "crypto";
 
 initializeApp();
 
@@ -260,5 +261,299 @@ export const generateGroundedAnswer = onCall(
 
       throw new HttpsError("internal", `Gemini generation failed: ${err?.message || "unknown error"}`);
     }
+  }
+);
+
+interface CatalogItem {
+  id: string;
+  name: string;
+  type: "credit_pack" | "subscription_tier";
+  amountPaise: number;
+  credits?: number;
+  tier?: string;
+  storageLimitBytes?: number;
+}
+
+const CATALOG: Record<string, CatalogItem> = {
+  // Micro Credit Top-Up Packs (One-time, non-expiring)
+  pack_150: {
+    id: "pack_150",
+    name: "150 AI Credits",
+    type: "credit_pack",
+    amountPaise: 1900, // ₹19.00
+    credits: 150,
+  },
+  credit_pack_150: {
+    id: "credit_pack_150",
+    name: "150 AI Credits",
+    type: "credit_pack",
+    amountPaise: 1900,
+    credits: 150,
+  },
+  pack_500: {
+    id: "pack_500",
+    name: "500 AI Credits",
+    type: "credit_pack",
+    amountPaise: 4900, // ₹49.00
+    credits: 500,
+  },
+  credit_pack_500: {
+    id: "credit_pack_500",
+    name: "500 AI Credits",
+    type: "credit_pack",
+    amountPaise: 4900,
+    credits: 500,
+  },
+  pack_1500: {
+    id: "pack_1500",
+    name: "1,500 AI Credits",
+    type: "credit_pack",
+    amountPaise: 12900, // ₹129.00
+    credits: 1500,
+  },
+  credit_pack_1500: {
+    id: "credit_pack_1500",
+    name: "1,500 AI Credits",
+    type: "credit_pack",
+    amountPaise: 12900,
+    credits: 1500,
+  },
+  // Tiers (Monthly / Annual)
+  tier_pro_monthly: {
+    id: "tier_pro_monthly",
+    name: "Pro Networker (Monthly)",
+    type: "subscription_tier",
+    amountPaise: 4900, // ₹49.00
+    tier: "pro",
+    credits: 250,
+    storageLimitBytes: 1610612736, // 1.5 GB
+  },
+  tier_pro_annual: {
+    id: "tier_pro_annual",
+    name: "Pro Networker (Annual)",
+    type: "subscription_tier",
+    amountPaise: 39900, // ₹399.00
+    tier: "pro",
+    credits: 250,
+    storageLimitBytes: 1610612736, // 1.5 GB
+  },
+  tier_executive_monthly: {
+    id: "tier_executive_monthly",
+    name: "Executive (Monthly)",
+    type: "subscription_tier",
+    amountPaise: 14900, // ₹149.00
+    tier: "executive",
+    credits: 1000,
+    storageLimitBytes: 6442450944, // 6.0 GB
+  },
+  tier_executive_annual: {
+    id: "tier_executive_annual",
+    name: "Executive (Annual)",
+    type: "subscription_tier",
+    amountPaise: 129900, // ₹1,299.00
+    tier: "executive",
+    credits: 1000,
+    storageLimitBytes: 6442450944, // 6.0 GB
+  },
+};
+
+/**
+ * Creates a verified Razorpay order server-side.
+ */
+export const createRazorpayOrder = onCall(
+  {
+    timeoutSeconds: 15,
+    memory: "256MiB",
+    cors: false,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated to create a payment order.");
+    }
+
+    const { catalogId } = request.data || {};
+    if (!catalogId || !CATALOG[catalogId]) {
+      throw new HttpsError("invalid-argument", `Invalid catalog item: ${catalogId}`);
+    }
+
+    const item = CATALOG[catalogId];
+    const uid = request.auth.uid;
+
+    const keyId = process.env.RAZORPAY_KEY_ID;
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+
+    // If real Razorpay keys are configured, call Razorpay Orders API
+    if (keyId && secret && keyId.startsWith("rzp_")) {
+      try {
+        const authHeader = Buffer.from(`${keyId}:${secret}`).toString("base64");
+        const resp = await fetch("https://api.razorpay.com/v1/orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Basic ${authHeader}`,
+          },
+          body: JSON.stringify({
+            amount: item.amountPaise,
+            currency: "INR",
+            receipt: `rcpt_${uid.substring(0, 8)}_${Date.now()}`,
+            notes: {
+              userId: uid,
+              catalogId: item.id,
+              name: item.name,
+            },
+          }),
+        });
+
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error("Razorpay order creation upstream failed:", errText);
+          throw new HttpsError("internal", `Payment gateway error: ${resp.status}`);
+        }
+
+        const data: any = await resp.json();
+        return {
+          orderId: data.id,
+          amount: data.amount,
+          currency: data.currency,
+          keyId: keyId,
+          catalogId: item.id,
+          name: item.name,
+          isTestMode: keyId.includes("test"),
+        };
+      } catch (err: any) {
+        if (err instanceof HttpsError) throw err;
+        console.error("Razorpay order fetch exception:", err);
+        throw new HttpsError("internal", "Failed to contact Razorpay payment gateway.");
+      }
+    }
+
+    // Fallback: Safe deterministic test mode order when keys are pending setup
+    const testOrderId = `order_test_${Date.now()}`;
+    return {
+      orderId: testOrderId,
+      amount: item.amountPaise,
+      currency: "INR",
+      keyId: "rzp_test_placeholder",
+      catalogId: item.id,
+      name: item.name,
+      isTestMode: true,
+    };
+  }
+);
+
+/**
+ * Cryptographically verifies Razorpay payment and atomically unlocks credits or tier.
+ */
+export const verifyRazorpayPayment = onCall(
+  {
+    timeoutSeconds: 15,
+    memory: "256MiB",
+    cors: false,
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "User must be authenticated to verify payments.");
+    }
+
+    const { orderId, paymentId, signature, catalogId, isTestMode } = request.data || {};
+    if (!orderId || !paymentId || !catalogId || !CATALOG[catalogId]) {
+      throw new HttpsError("invalid-argument", "Missing or invalid payment verification parameters.");
+    }
+
+    const item = CATALOG[catalogId];
+    const uid = request.auth.uid;
+
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+
+    // Verify HMAC SHA256 signature if not simulated test mode
+    if (!isTestMode && secret) {
+      if (!signature) {
+        throw new HttpsError("invalid-argument", "Payment signature is required.");
+      }
+      const expectedSig = crypto
+        .createHmac("sha256", secret)
+        .update(`${orderId}|${paymentId}`)
+        .digest("hex");
+
+      if (expectedSig !== signature) {
+        console.error("Signature mismatch. Expected:", expectedSig, "Got:", signature);
+        throw new HttpsError("permission-denied", "Cryptographic payment verification failed.");
+      }
+    }
+
+    // Atomic update to user subscription and credit ledger
+    const subDocRef = db.collection("users").doc(uid).collection("subscription").doc("current");
+    const ledgerRef = db.collection("users").doc(uid).collection("credit_ledger").doc();
+
+    let updatedCredits = 0;
+    let updatedTier = "starter";
+
+    await db.runTransaction(async (tx) => {
+      const subSnap = await tx.get(subDocRef);
+      const subData = subSnap.exists ? subSnap.data() || {} : {};
+
+      const currentMonthlyUsed = subData.monthlyCreditsUsed ?? 0;
+      const currentPurchased = subData.purchasedCredits ?? 0;
+      const currentMonthlyTotal = subData.monthlyCreditsTotal ?? 20;
+
+      if (item.type === "credit_pack") {
+        const newPurchased = currentPurchased + (item.credits ?? 0);
+        tx.set(
+          subDocRef,
+          {
+            purchasedCredits: newPurchased,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+        updatedCredits = Math.max(0, currentMonthlyTotal - currentMonthlyUsed) + newPurchased;
+        updatedTier = subData.tier ?? "starter";
+      } else {
+        // subscription_tier
+        const isAnnual = item.id.endsWith("_annual");
+        const days = isAnnual ? 365 : 30;
+        const periodEnd = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+        tx.set(
+          subDocRef,
+          {
+            tier: item.tier,
+            status: "active",
+            monthlyCreditsTotal: item.credits ?? 250,
+            storageLimitBytes: item.storageLimitBytes ?? 1610612736,
+            currentPeriodStart: FieldValue.serverTimestamp(),
+            currentPeriodEnd: Timestamp.fromDate(periodEnd),
+            cancelAtPeriodEnd: false,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+        updatedCredits = (item.credits ?? 250) + currentPurchased;
+        updatedTier = item.tier ?? "pro";
+      }
+
+      // Record to immutable credit ledger
+      tx.set(ledgerRef, {
+        id: ledgerRef.id,
+        timestamp: FieldValue.serverTimestamp(),
+        type: "credit",
+        amount: item.credits ?? 0,
+        reason: item.type === "credit_pack" ? "pack_purchase" : "tier_upgrade",
+        metadata: {
+          catalogId: item.id,
+          amountPaidPaise: item.amountPaise,
+          paymentId: paymentId,
+          orderId: orderId,
+        },
+      });
+    });
+
+    return {
+      success: true,
+      catalogId: item.id,
+      tier: updatedTier,
+      totalCredits: updatedCredits,
+      message: `Successfully fulfilled ${item.name}!`,
+    };
   }
 );

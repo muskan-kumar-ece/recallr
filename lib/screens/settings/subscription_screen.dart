@@ -1,16 +1,19 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
 import '../../core/theme/theme.dart';
 import '../../core/widgets/widgets.dart';
 import '../../features/subscription/models/subscription_models.dart';
 import '../../repositories/subscription_repository.dart';
+import '../../services/payment/payment_service.dart';
 
 /// Dark-First Pro Subscription, AI Credit, and Cloud Storage Management Screen.
 class SubscriptionScreen extends StatefulWidget {
   final SubscriptionRepository? repository;
+  final PaymentService? paymentService;
 
-  const SubscriptionScreen({super.key, this.repository});
+  const SubscriptionScreen({super.key, this.repository, this.paymentService});
 
   @override
   State<SubscriptionScreen> createState() => _SubscriptionScreenState();
@@ -25,6 +28,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   SubscriptionRepository get _repo =>
       widget.repository ?? context.subscriptionRepo;
+
+  PaymentService get _paymentService =>
+      widget.paymentService ?? context.paymentService;
 
   @override
   void initState() {
@@ -64,18 +70,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
     try {
-      await _repo.purchaseCreditPack(pack);
-      if (mounted) {
+      User? user;
+      try {
+        user = FirebaseAuth.instance.currentUser;
+      } catch (_) {
+        user = null;
+      }
+      final result = await _paymentService.purchaseCreditPack(
+        context: context,
+        pack: pack,
+        userEmail: user?.email,
+        userPhone: user?.phoneNumber,
+      );
+
+      if (result.isSuccess) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: RecallrColors.slateSurface,
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, color: RecallrColors.emeraldVerified, size: 20),
+                  RecallrSpacing.gapSm,
+                  Text('Added ${pack.credits} AI credits to your account!'),
+                ],
+              ),
+            ),
+          );
+        }
+      } else if (result.isFailed && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: RecallrColors.slateSurface,
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle_rounded, color: RecallrColors.emeraldVerified, size: 20),
-                RecallrSpacing.gapSm,
-                Text('Added ${pack.credits} AI credits to your account!'),
-              ],
-            ),
+            backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
+            content: Text(result.errorMessage ?? 'Payment failed. Please try again.'),
           ),
         );
       }
@@ -97,18 +124,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
     try {
-      await _repo.upgradeTier(tier, annual: _isAnnual);
-      if (mounted) {
+      User? user;
+      try {
+        user = FirebaseAuth.instance.currentUser;
+      } catch (_) {
+        user = null;
+      }
+      final result = await _paymentService.upgradeTier(
+        context: context,
+        tier: tier,
+        isAnnual: _isAnnual,
+        userEmail: user?.email,
+        userPhone: user?.phoneNumber,
+      );
+
+      if (result.isSuccess) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: RecallrColors.slateSurface,
+              content: Row(
+                children: [
+                  const Icon(Icons.workspace_premium_rounded, color: RecallrColors.aiElectricViolet, size: 20),
+                  RecallrSpacing.gapSm,
+                  Text('Upgraded to ${tier.displayName}!'),
+                ],
+              ),
+            ),
+          );
+        }
+      } else if (result.isFailed && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: RecallrColors.slateSurface,
-            content: Row(
-              children: [
-                const Icon(Icons.workspace_premium_rounded, color: RecallrColors.aiElectricViolet, size: 20),
-                RecallrSpacing.gapSm,
-                Text('Upgraded to ${tier.displayName}!'),
-              ],
-            ),
+            backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
+            content: Text(result.errorMessage ?? 'Upgrade failed. Please try again.'),
           ),
         );
       }

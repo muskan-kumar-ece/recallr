@@ -15,6 +15,31 @@
   <title>Recaller</title>
 </head>
 <body>
+  <!-- Razorpay Checkout -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    window.openRazorpayWebCheckout = function(optionsJson, successCallback, errorCallback) {
+      try {
+        var options = JSON.parse(optionsJson);
+        options.handler = function(response) {
+          if (successCallback) successCallback(JSON.stringify(response));
+        };
+        options.modal = {
+          ondismiss: function() {
+            if (errorCallback) errorCallback("PAYMENT_CANCELLED");
+          }
+        };
+        var rzp = new Razorpay(options);
+        rzp.on('payment.failed', function(resp) {
+          if (errorCallback) errorCallback(JSON.stringify(resp.error || {}));
+        });
+        rzp.open();
+      } catch (e) {
+        if (errorCallback) errorCallback(e.toString());
+      }
+    };
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

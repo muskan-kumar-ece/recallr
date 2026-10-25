@@ -766,15 +766,20 @@ class _CaptureModalState extends State<CaptureModal> {
     } catch (e) {
       if (mounted) {
         final errText = e.toString().toLowerCase();
+        final isQuota = errText.contains('quota');
         final isStorageIssue = errText.contains('storage') ||
             errText.contains('bucket') ||
             errText.contains('object-not-found') ||
             errText.contains('not-found');
         setState(() {
           _state = CaptureState.error;
-          _errorMessage = isStorageIssue
-              ? 'Could not upload media to Cloud Storage. Please ensure Firebase Storage is initialized in Firebase Console, or save contact details directly.'
-              : 'Failed to save capture. Please try again.';
+          if (isQuota) {
+            _errorMessage = 'Cloud storage limit reached. You can upgrade to Pro for 1.5 GB in Settings, or save contact details directly without cloud photo.';
+          } else if (isStorageIssue) {
+            _errorMessage = 'Could not upload media to Cloud Storage. Please ensure Firebase Storage is initialized in Firebase Console, or save contact details directly.';
+          } else {
+            _errorMessage = 'Failed to save capture. Please try again.';
+          }
         });
       }
     } finally {

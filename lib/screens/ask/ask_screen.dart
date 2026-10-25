@@ -230,6 +230,22 @@ class _AskScreenState extends State<AskScreen> {
           _isError = true;
         }
 
+        final isCreditQuota = errorMessage != null &&
+            (errorMessage.toLowerCase().contains('credit') ||
+                errorMessage.toLowerCase().contains('quota') ||
+                errorMessage.toLowerCase().contains('resource-exhausted'));
+
+        if (isCreditQuota) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              QuotaExceededDialog.show(
+                context: context,
+                quotaType: QuotaType.aiCredits,
+              );
+            }
+          });
+        }
+
         if (!_recentQuestions.contains(cleanQuestion)) {
           _recentQuestions.insert(0, cleanQuestion);
           if (_recentQuestions.length > 5) {

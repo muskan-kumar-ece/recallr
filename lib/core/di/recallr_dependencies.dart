@@ -23,6 +23,9 @@ import '../../repositories/follow_up_repository.dart';
 import '../../repositories/media_storage_repository.dart';
 import '../../repositories/people_repository.dart';
 import '../../repositories/person_detail_repository.dart';
+import '../../repositories/subscription_repository.dart';
+import '../../data/firestore/firestore_subscription_repository.dart';
+import '../../data/mock/mock_subscription_repository.dart';
 import '../../services/audio_recorder_service.dart';
 import '../../services/capture_processing_service.dart';
 import '../../services/entity_resolution_service.dart';
@@ -136,6 +139,7 @@ class RecallrDependencies {
   final CrashReportingService crashReportingService;
   final TelemetryService telemetryService;
   final PerformanceTracker performanceTracker;
+  final SubscriptionRepository subscriptionRepository;
 
   RecallrDependencies({
     required this.peopleRepository,
@@ -143,6 +147,7 @@ class RecallrDependencies {
     required this.activityRepository,
     required this.followUpRepository,
     required this.captureRepository,
+    SubscriptionRepository? subscriptionRepository,
     MediaStorageRepository? mediaStorageRepository,
     MediaPickerService? mediaPickerService,
     AudioRecorderService? audioRecorderService,
@@ -193,6 +198,7 @@ class RecallrDependencies {
         telemetryService = telemetryService ?? ProductionTelemetryService(),
         performanceTracker = performanceTracker ??
             PerformanceTracker(telemetryService ?? ProductionTelemetryService()),
+        subscriptionRepository = subscriptionRepository ?? MockSubscriptionRepository(),
         mediaStorageRepository = mediaStorageRepository ?? MockMediaStorageRepository(),
         mediaPickerService = mediaPickerService ?? MockMediaPickerService(),
         audioRecorderService = audioRecorderService ?? MockAudioRecorderService(),
@@ -414,6 +420,7 @@ class RecallrDependencies {
     ActivityRepository? activityRepository,
     FollowUpRepository? followUpRepository,
     CaptureRepository? captureRepository,
+    SubscriptionRepository? subscriptionRepository,
     MediaStorageRepository? mediaStorageRepository,
     MediaPickerService? mediaPickerService,
     AudioRecorderService? audioRecorderService,
@@ -461,6 +468,7 @@ class RecallrDependencies {
     PerformanceTracker? performanceTracker,
   }) {
     final peopleRepo = peopleRepository ?? FirestorePeopleRepository(firestore: firestore, auth: auth);
+    final subRepo = subscriptionRepository ?? FirestoreSubscriptionRepository(firestore: firestore, auth: auth);
     final personDetailRepo = personDetailRepository ?? FirestorePersonDetailRepository(firestore: firestore, auth: auth);
     final activityRepo = activityRepository ?? FirestoreActivityRepository(firestore: firestore, auth: auth);
     final followUpRepo = followUpRepository ?? FirestoreFollowUpRepository(firestore: firestore, auth: auth);
@@ -620,7 +628,8 @@ class RecallrDependencies {
       activityRepository: activityRepo,
       followUpRepository: followUpRepo,
       captureRepository: captureRepo,
-      mediaStorageRepository: FirebaseMediaStorageRepository(storage: storage, auth: auth),
+      subscriptionRepository: subRepo,
+      mediaStorageRepository: FirebaseMediaStorageRepository(storage: storage, auth: auth, subscriptionRepository: subRepo),
       mediaPickerService: DeviceMediaPickerService(),
       audioRecorderService: DeviceAudioRecorderService(),
       captureProcessingRepository: FirestoreCaptureProcessingRepository(
@@ -673,6 +682,7 @@ class RecallrDependencies {
     ActivityRepository? activityRepository,
     FollowUpRepository? followUpRepository,
     CaptureRepository? captureRepository,
+    SubscriptionRepository? subscriptionRepository,
     MediaStorageRepository? mediaStorageRepository,
     MediaPickerService? mediaPickerService,
     AudioRecorderService? audioRecorderService,
@@ -877,6 +887,7 @@ class RecallrDependencies {
       activityRepository: activityRepo,
       followUpRepository: followUpRepo,
       captureRepository: captureRepo,
+      subscriptionRepository: subscriptionRepository ?? MockSubscriptionRepository(),
       mediaStorageRepository: mediaStorageRepository ?? MockMediaStorageRepository(),
       mediaPickerService: mediaPickerService ?? MockMediaPickerService(),
       audioRecorderService: audioRecorderService ?? MockAudioRecorderService(),
@@ -965,6 +976,7 @@ extension RecallrDependenciesContext on BuildContext {
   ActivityRepository get activityRepo => dependencies.activityRepository;
   FollowUpRepository get followUpRepo => dependencies.followUpRepository;
   CaptureRepository get captureRepo => dependencies.captureRepository;
+  SubscriptionRepository get subscriptionRepo => dependencies.subscriptionRepository;
   MediaStorageRepository get mediaStorageRepo => dependencies.mediaStorageRepository;
   MediaPickerService get mediaPickerService => dependencies.mediaPickerService;
   AudioRecorderService get audioRecorderService => dependencies.audioRecorderService;

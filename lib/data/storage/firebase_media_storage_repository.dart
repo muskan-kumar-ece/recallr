@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../../core/errors/data_exceptions.dart';
 import '../../core/security/security.dart';
 import '../../repositories/media_storage_repository.dart';
+import '../../repositories/subscription_repository.dart';
 import '../../services/audio_recorder_service.dart';
 import '../../services/media_picker_service.dart';
 
@@ -12,12 +13,15 @@ import '../../services/media_picker_service.dart';
 class FirebaseMediaStorageRepository implements MediaStorageRepository {
   final FirebaseStorage? _storageOverride;
   final FirebaseAuth? _authOverride;
+  final SubscriptionRepository? _subscriptionRepository;
 
   FirebaseMediaStorageRepository({
     FirebaseStorage? storage,
     FirebaseAuth? auth,
+    SubscriptionRepository? subscriptionRepository,
   })  : _storageOverride = storage,
-        _authOverride = auth;
+        _authOverride = auth,
+        _subscriptionRepository = subscriptionRepository;
 
   FirebaseStorage get _storage => _storageOverride ?? FirebaseStorage.instance;
   FirebaseAuth get _auth => _authOverride ?? FirebaseAuth.instance;
@@ -74,6 +78,18 @@ class FirebaseMediaStorageRepository implements MediaStorageRepository {
         throw RecallrDataException.invalidData('Invalid or malformed storage path.');
       }
 
+      // Check cloud storage quota before initiating upload
+      final subRepo = _subscriptionRepository;
+      if (subRepo != null) {
+        final sub = await subRepo.getSubscription();
+        final uploadSize = file.bytes?.length ?? (File(file.path).existsSync() ? await File(file.path).length() : 0);
+        if (sub.isStorageExceeded(uploadSize)) {
+          throw RecallrDataException.quotaExceeded(
+            'Cloud storage limit reached (${sub.formattedStorageUsed} of ${sub.formattedStorageLimit}). Upgrade to Pro for 1.5 GB.',
+          );
+        }
+      }
+
       final storageRef = _storage.ref().child(storagePath);
 
       final metadata = SettableMetadata(
@@ -112,6 +128,11 @@ class FirebaseMediaStorageRepository implements MediaStorageRepository {
       final snapshot = await uploadTask;
       final mediaUrl = await snapshot.ref.getDownloadURL();
 
+      final uploadedBytes = snapshot.totalBytes > 0 ? snapshot.totalBytes : (file.bytes?.length ?? 0);
+      if (subRepo != null && uploadedBytes > 0) {
+        await subRepo.updateStorageUsage(deltaBytes: uploadedBytes);
+      }
+
       return UploadMediaResult(
         mediaUrl: mediaUrl,
         storagePath: storagePath,
@@ -145,6 +166,18 @@ class FirebaseMediaStorageRepository implements MediaStorageRepository {
 
       if (!InputSanitizer.isValidStoragePath(storagePath, uid)) {
         throw RecallrDataException.invalidData('Invalid or malformed audio storage path.');
+      }
+
+      // Check cloud storage quota before initiating audio upload
+      final subRepo = _subscriptionRepository;
+      if (subRepo != null) {
+        final sub = await subRepo.getSubscription();
+        final uploadSize = file.bytes?.length ?? (File(file.path).existsSync() ? await File(file.path).length() : 0);
+        if (sub.isStorageExceeded(uploadSize)) {
+          throw RecallrDataException.quotaExceeded(
+            'Cloud storage limit reached (${sub.formattedStorageUsed} of ${sub.formattedStorageLimit}). Upgrade to Pro for 1.5 GB.',
+          );
+        }
       }
 
       final storageRef = _storage.ref().child(storagePath);
@@ -185,6 +218,11 @@ class FirebaseMediaStorageRepository implements MediaStorageRepository {
 
       final snapshot = await uploadTask;
       final mediaUrl = await snapshot.ref.getDownloadURL();
+
+      final uploadedBytes = snapshot.totalBytes > 0 ? snapshot.totalBytes : (file.bytes?.length ?? 0);
+      if (subRepo != null && uploadedBytes > 0) {
+        await subRepo.updateStorageUsage(deltaBytes: uploadedBytes);
+      }
 
       return UploadMediaResult(
         mediaUrl: mediaUrl,

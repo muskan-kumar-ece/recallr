@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:recaller/core/theme/theme.dart';
 import 'package:recaller/core/utils/share_formatter.dart';
 import 'package:recaller/core/widgets/destructive_confirm_dialog.dart';
 import 'package:recaller/core/widgets/share_bottom_sheet.dart';

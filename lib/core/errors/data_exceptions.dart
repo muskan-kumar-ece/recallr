@@ -15,6 +15,9 @@ enum DataErrorType {
   /// Data payload is malformed, missing required fields, or fails schema validation.
   invalidData,
 
+  /// User storage or AI credit quota has been exceeded.
+  quotaExceeded,
+
   /// An unexpected or unclassified error occurred.
   unknown;
 
@@ -30,6 +33,8 @@ enum DataErrorType {
         return 'Network is unavailable. Changes will sync when reconnected.';
       case DataErrorType.invalidData:
         return 'The data is invalid or malformed.';
+      case DataErrorType.quotaExceeded:
+        return 'Storage or AI credit limit reached. Please upgrade your plan or top up.';
       case DataErrorType.unknown:
         return 'An unexpected error occurred. Please try again.';
     }
@@ -77,6 +82,15 @@ class RecallrDataException implements Exception {
     return RecallrDataException(
       type: DataErrorType.invalidData,
       message: 'Invalid data: $details',
+    );
+  }
+
+  factory RecallrDataException.quotaExceeded([String? details]) {
+    return RecallrDataException(
+      type: DataErrorType.quotaExceeded,
+      message: details != null
+          ? 'Quota exceeded: $details'
+          : DataErrorType.quotaExceeded.defaultMessage,
     );
   }
 

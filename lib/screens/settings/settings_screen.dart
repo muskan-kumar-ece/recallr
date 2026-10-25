@@ -82,6 +82,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               RecallrSpacing.gapLg,
 
+              // Membership & Resource Quotas
+              Text('Membership & Cloud Usage', style: RecallrTypography.titleMedium),
+              RecallrSpacing.gapSm,
+              RecallrCard(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: RecallrColors.aiElectricViolet.withAlpha(35),
+                      borderRadius: RecallrRadii.radiusMd,
+                      border: Border.all(color: RecallrColors.aiElectricViolet.withAlpha(80)),
+                    ),
+                    child: const Icon(Icons.workspace_premium_rounded, color: RecallrColors.aiElectricViolet, size: 22),
+                  ),
+                  title: Text('Subscription & Storage', style: RecallrTypography.titleMedium),
+                  subtitle: Text(
+                    'Manage tier, AI credits, and cloud media quotas',
+                    style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: RecallrColors.textSecondary),
+                  onTap: () => Navigator.of(context).pushNamed('/subscription'),
+                ),
+              ),
+              RecallrSpacing.gapLg,
+
               // AI & Intelligence Settings
               Text('AI & Grounding Controls', style: RecallrTypography.titleMedium),
               RecallrSpacing.gapSm,

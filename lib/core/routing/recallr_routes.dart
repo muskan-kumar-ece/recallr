@@ -22,6 +22,7 @@ class RecallrRoutes {
   static const String followUp = '/follow-up';
   static const String network = '/network';
   static const String settings = '/settings';
+  static const String subscription = '/subscription';
 
   // Helpers for generating future deep-link paths
   static String personPath(String id) => '/person/$id';

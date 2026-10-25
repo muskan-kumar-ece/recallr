@@ -9,6 +9,7 @@ import '../../screens/entities/event_dossier_screen.dart';
 import '../../screens/entities/file_dossier_screen.dart';
 import '../../screens/entities/interaction_dossier_screen.dart';
 import '../../screens/settings/settings_screen.dart';
+import '../../screens/settings/subscription_screen.dart';
 import '../../screens/common/not_found_screen.dart';
 import '../../screens/follow_ups/follow_ups_screen.dart';
 import '../../screens/network/network_dashboard_screen.dart';
@@ -78,6 +79,14 @@ class AppRouter {
     if (path == RecallrRoutes.settings) {
       return _buildRoute(
         const SettingsScreen(),
+        settings,
+      );
+    }
+
+    // Subscription & Storage Route
+    if (path == RecallrRoutes.subscription) {
+      return _buildRoute(
+        const SubscriptionScreen(),
         settings,
       );
     }

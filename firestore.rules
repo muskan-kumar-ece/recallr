@@ -77,6 +77,16 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
     
+    // Subcollection: User Subscription & Quota (/users/{userId}/subscription/current)
+    match /users/{userId}/subscription/{subId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Subcollection: Credit Ledger (/users/{userId}/credit_ledger/{ledgerId})
+    match /users/{userId}/credit_ledger/{ledgerId} {
+      allow read, write: if isOwner(userId);
+    }
+    
     // Catch-all for any other nested subcollections under /users/{userId}
     match /users/{userId}/{document=**} {
       allow read, write: if isOwner(userId);

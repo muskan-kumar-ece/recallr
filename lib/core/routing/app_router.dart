@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'deep_link_manager.dart';
 import 'recallr_routes.dart';
+import '../theme/theme.dart';
+import '../widgets/widgets.dart';
 import '../../app/app_shell.dart';
 import '../../screens/auth_screen.dart';
 import '../../screens/entities/company_dossier_screen.dart';
@@ -30,7 +32,8 @@ class AppRouter {
     } catch (_) {
       user = null;
     }
-    final bool isAuthenticated = user != null;
+    const bool allowPreview = bool.fromEnvironment('ALLOW_ANONYMOUS_PREVIEW', defaultValue: false);
+    final bool isAuthenticated = user != null || allowPreview;
 
     // Public / Auth Route
     if (path == RecallrRoutes.auth) {
@@ -87,6 +90,34 @@ class AppRouter {
     if (path == RecallrRoutes.subscription) {
       return _buildRoute(
         const SubscriptionScreen(),
+        settings,
+      );
+    }
+
+    // Interactive Quota Dialog Preview Routes
+    if (allowPreview && path == '/preview/quota-credits') {
+      return _buildRoute(
+        const Scaffold(
+          backgroundColor: RecallrColors.obsidianBase,
+          body: Center(
+            child: QuotaExceededDialog(
+              quotaType: QuotaType.aiCredits,
+            ),
+          ),
+        ),
+        settings,
+      );
+    }
+    if (allowPreview && path == '/preview/quota-storage') {
+      return _buildRoute(
+        const Scaffold(
+          backgroundColor: RecallrColors.obsidianBase,
+          body: Center(
+            child: QuotaExceededDialog(
+              quotaType: QuotaType.cloudStorage,
+            ),
+          ),
+        ),
         settings,
       );
     }

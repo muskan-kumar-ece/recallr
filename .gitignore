@@ -36,6 +36,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Firebase cache
+.firebase/
+
 # Symbolication related
 app.*.symbols
 

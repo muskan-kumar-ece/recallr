@@ -11,6 +11,8 @@ import '../screens/people/people_screen.dart';
 import '../services/auth_service.dart';
 import '../core/routing/deep_link_manager.dart';
 import '../core/routing/recallr_routes.dart';
+import '../core/di/recallr_dependencies.dart';
+import '../features/subscription/models/subscription_models.dart';
 
 /// Responsive Breakpoint constants
 const double kTabletBreakpoint = 600.0;
@@ -300,7 +302,87 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           ),
         ),
         RecallrSpacing.gapSm,
-        // User Profile Avatar with Sign Out
+        // AI Credits & Subscription Quick Access Pill
+        StreamBuilder<UserSubscription>(
+          stream: context.subscriptionRepo.streamSubscription(),
+          builder: (context, snapshot) {
+            final subscription = snapshot.data;
+            final credits = subscription?.totalAvailableCredits ?? 20;
+            final tier = subscription?.tier ?? SubscriptionTier.starter;
+            final isPro = tier != SubscriptionTier.starter;
+
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: RecallrSpacing.xs),
+                child: Tooltip(
+                  message: 'AI Credits: $credits remaining\nTap to manage subscription & top up',
+                  child: InkWell(
+                    key: const ValueKey<String>('appbar_credits_pill'),
+                    onTap: () {
+                      Navigator.of(context).pushNamed(RecallrRoutes.subscription);
+                    },
+                    borderRadius: RecallrRadii.radiusPill,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9.0, vertical: 5.0),
+                      decoration: BoxDecoration(
+                        color: isPro
+                            ? RecallrColors.aiElectricViolet.withValues(alpha: 0.15)
+                            : RecallrColors.slateSurface,
+                        borderRadius: RecallrRadii.radiusPill,
+                        border: Border.all(
+                          color: isPro
+                              ? RecallrColors.aiElectricViolet.withValues(alpha: 0.4)
+                              : RecallrColors.borderSubtle,
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.bolt_rounded,
+                            size: 15.0,
+                            color: isPro ? RecallrColors.aiElectricViolet : RecallrColors.warmAmberGold,
+                          ),
+                          const SizedBox(width: 4.0),
+                          Text(
+                            '$credits',
+                            style: RecallrTypography.labelSmall.copyWith(
+                              color: RecallrColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12.0,
+                            ),
+                          ),
+                          if (isPro) ...[
+                            const SizedBox(width: 4.0),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 1.0),
+                              decoration: const BoxDecoration(
+                                color: RecallrColors.aiElectricViolet,
+                                borderRadius: RecallrRadii.radiusSm,
+                              ),
+                              child: Text(
+                                tier.displayName.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 8.0,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        RecallrSpacing.gapXs,
+        // User Profile Avatar with Sign Out and Subscription Menu
         PopupMenuButton<String>(
           offset: const Offset(0, 48),
           color: RecallrColors.slateSurface,
@@ -309,7 +391,9 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
             side: const BorderSide(color: RecallrColors.borderSubtle, width: 1.0),
           ),
           onSelected: (value) async {
-            if (value == 'settings') {
+            if (value == 'subscription') {
+              Navigator.of(context).pushNamed(RecallrRoutes.subscription);
+            } else if (value == 'settings') {
               Navigator.of(context).pushNamed('/settings');
             } else if (value == 'sign_out') {
               DeepLinkManager().consumePendingPath();
@@ -327,12 +411,38 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
             ),
             const PopupMenuDivider(height: 1),
             PopupMenuItem<String>(
+              key: const ValueKey<String>('menu_item_subscription'),
+              value: 'subscription',
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.workspace_premium_rounded, size: 18, color: RecallrColors.warmAmberGold),
+                  RecallrSpacing.gapSm,
+                  Expanded(
+                    child: Text(
+                      'Subscription & Storage',
+                      style: RecallrTypography.bodyMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(height: 1),
+            PopupMenuItem<String>(
               value: 'settings',
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.settings_outlined, size: 18, color: RecallrColors.textSecondary),
                   RecallrSpacing.gapSm,
-                  Text('Settings & Preferences', style: RecallrTypography.bodyMedium),
+                  Expanded(
+                    child: Text(
+                      'Settings & Preferences',
+                      style: RecallrTypography.bodyMedium,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -340,10 +450,17 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
             PopupMenuItem<String>(
               value: 'sign_out',
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(Icons.logout_rounded, size: 18, color: RecallrColors.crimsonAlert),
                   RecallrSpacing.gapSm,
-                  Text('Sign Out', style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.crimsonAlert)),
+                  Expanded(
+                    child: Text(
+                      'Sign Out',
+                      style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.crimsonAlert),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -407,6 +524,80 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           label: Text(d.label),
         );
       }).toList(),
+      trailing: Padding(
+        padding: const EdgeInsets.only(top: RecallrSpacing.xl, bottom: RecallrSpacing.md),
+        child: isDesktop
+            ? StreamBuilder<UserSubscription>(
+                stream: context.subscriptionRepo.streamSubscription(),
+                builder: (context, snapshot) {
+                  final sub = snapshot.data;
+                  final credits = sub?.totalAvailableCredits ?? 20;
+                  final tier = sub?.tier ?? SubscriptionTier.starter;
+                  final isPro = tier != SubscriptionTier.starter;
+
+                  return InkWell(
+                    key: const ValueKey<String>('nav_rail_subscription_desktop'),
+                    onTap: () => Navigator.of(context).pushNamed(RecallrRoutes.subscription),
+                    borderRadius: RecallrRadii.radiusMd,
+                    child: Container(
+                      width: 180.0,
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                      decoration: BoxDecoration(
+                        color: isPro
+                            ? RecallrColors.aiElectricViolet.withValues(alpha: 0.12)
+                            : RecallrColors.charcoalCard,
+                        borderRadius: RecallrRadii.radiusMd,
+                        border: Border.all(
+                          color: isPro
+                              ? RecallrColors.aiElectricViolet.withValues(alpha: 0.35)
+                              : RecallrColors.borderSubtle,
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isPro ? Icons.workspace_premium_rounded : Icons.bolt_rounded,
+                            size: 18.0,
+                            color: isPro ? RecallrColors.aiElectricViolet : RecallrColors.warmAmberGold,
+                          ),
+                          const SizedBox(width: 8.0),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  tier.displayName,
+                                  style: RecallrTypography.bodyMedium.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                                Text(
+                                  '$credits credits',
+                                  style: RecallrTypography.labelSmall.copyWith(
+                                    color: RecallrColors.textSecondary,
+                                    fontSize: 10.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 11.0, color: RecallrColors.textSecondary),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              )
+            : IconButton(
+                key: const ValueKey<String>('nav_rail_subscription_tablet'),
+                icon: Icon(Icons.workspace_premium_rounded, color: RecallrColors.warmAmberGold),
+                tooltip: 'Subscription & Cloud Storage',
+                onPressed: () => Navigator.of(context).pushNamed(RecallrRoutes.subscription),
+              ),
+      ),
     );
   }
 

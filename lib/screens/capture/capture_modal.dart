@@ -6,8 +6,10 @@ import '../../core/theme/theme.dart';
 import '../../features/capture/models/capture_models.dart';
 import '../../features/capture/models/capture_processing_models.dart';
 import '../../features/capture/widgets/business_card_capture_view.dart';
+import '../../features/capture/widgets/capture_empty_state.dart';
 import '../../features/capture/widgets/capture_error_view.dart';
 import '../../features/capture/widgets/capture_header.dart';
+import '../../features/capture/widgets/capture_method_grid.dart';
 import '../../features/capture/widgets/capture_recent_list.dart';
 import '../../features/capture/widgets/capture_review_view.dart';
 import '../../features/capture/widgets/capture_success_view.dart';
@@ -23,8 +25,6 @@ import '../../repositories/people_repository.dart';
 import '../../features/people/models/person_item.dart';
 import '../../services/ocr/ocr_service.dart';
 import '../../services/ocr/ocr_entity_extractor.dart';
-import '../../core/routing/recallr_routes.dart';
-import '../../app/app_shell.dart';
 
 class CaptureModal extends StatefulWidget {
   final bool isEmpty;
@@ -1034,169 +1034,11 @@ class _CaptureModalState extends State<CaptureModal> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Drag handle & Hint
-        Center(
-          child: Container(
-            width: 38,
-            height: 4,
-            decoration: BoxDecoration(
-              color: RecallrColors.borderHighlight,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+        CaptureMethodGrid(
+          onSelectType: _selectType,
         ),
-        const SizedBox(height: 6),
-        const Center(
-          child: Text(
-            'DRAG TO EXPAND OR COLLAPSE',
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.2,
-              color: RecallrColors.textTertiary,
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-
-        // Header with title, subtitle, and close button
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Quick Add',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: RecallrColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'What would you like to remember?',
-                  style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
-                ),
-              ],
-            ),
-            InkWell(
-              onTap: () => Navigator.of(context).maybePop(),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: RecallrColors.slateSurface,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: RecallrColors.borderSubtle),
-                ),
-                child: const Icon(Icons.close_rounded, size: 18, color: RecallrColors.textSecondary),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // 3 Large Rows for Adding People
-        _buildPeopleActionTile(
-          icon: Icons.qr_code_scanner_rounded,
-          iconBg: const Color(0xFF3B2A10),
-          iconColor: RecallrColors.warmAmberGold,
-          title: 'Scan Recallr QR code',
-          subtitle: 'Connect with a person',
-          onTap: () => _selectType(CaptureType.businessCard),
-        ),
-        const SizedBox(height: 8),
-        _buildPeopleActionTile(
-          icon: Icons.person_add_outlined,
-          iconBg: const Color(0xFF221A3D),
-          iconColor: RecallrColors.aiElectricViolet,
-          title: 'Add person manually',
-          subtitle: 'Enter details yourself',
-          onTap: () {
-            Navigator.of(context).maybePop();
-            Navigator.of(context).pushNamed(RecallrRoutes.people);
-          },
-        ),
-        const SizedBox(height: 8),
-        _buildPeopleActionTile(
-          icon: Icons.auto_awesome_rounded,
-          iconBg: const Color(0xFF0F2B20),
-          iconColor: RecallrColors.emeraldVerified,
-          title: 'Add through AI',
-          subtitle: 'Describe a person or interaction',
-          onTap: () {
-            Navigator.of(context).maybePop();
-            RecallrAppShellScope.openTab(context, 2);
-          },
-        ),
-        const SizedBox(height: 20),
-
-        // Section Title: CAPTURE NOTES, MEMORIES & MORE
-        const Text(
-          'CAPTURE NOTES, MEMORIES & MORE',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.0,
-            color: RecallrColors.textTertiary,
-          ),
-        ),
-        const SizedBox(height: 10),
-
-        // 2x3 Grid of 6 Quick Actions
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1.7,
-          children: [
-            _buildCaptureTile(
-              icon: Icons.edit_note_rounded,
-              title: 'Quick note',
-              onTap: () => _selectType(CaptureType.note),
-            ),
-            _buildCaptureTile(
-              icon: Icons.mic_rounded,
-              title: 'Voice memo',
-              onTap: () => _selectType(CaptureType.voice),
-            ),
-            _buildCaptureTile(
-              icon: Icons.event_outlined,
-              title: 'Create follow-up',
-              onTap: () {
-                Navigator.of(context).maybePop();
-                Navigator.of(context).pushNamed(RecallrRoutes.followUps);
-              },
-            ),
-            _buildCaptureTile(
-              icon: Icons.contact_page_outlined,
-              title: 'Business card',
-              onTap: () => _selectType(CaptureType.businessCard),
-            ),
-            _buildCaptureTile(
-              icon: Icons.camera_alt_outlined,
-              title: 'Capture photo',
-              onTap: () => _selectType(CaptureType.photo),
-            ),
-            _buildCaptureTile(
-              icon: Icons.upload_file_outlined,
-              title: 'Add document',
-              onTap: () => _selectType(CaptureType.document),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 16),
-        if (_recentCaptures.isNotEmpty && !widget.isEmpty) ...[
-          const Divider(color: RecallrColors.borderSubtle),
-          const SizedBox(height: 8),
+        RecallrSpacing.gapLg,
+        if (_recentCaptures.isNotEmpty && !widget.isEmpty)
           CaptureRecentList(
             items: _recentCaptures,
             onDeleteItem: _handleDeleteRecentCapture,
@@ -1207,112 +1049,10 @@ class _CaptureModalState extends State<CaptureModal> {
               }
               nav.pushNamed(item.targetRoute);
             },
-          ),
-        ],
+          )
+        else
+          const CaptureEmptyState(),
       ],
-    );
-  }
-
-  Widget _buildPeopleActionTile({
-    required IconData icon,
-    required Color iconBg,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: RecallrColors.slateSurface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: RecallrColors.borderSubtle),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: iconColor, size: 22),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                      color: RecallrColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      color: RecallrColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: RecallrColors.textTertiary, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCaptureTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: RecallrColors.slateSurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: RecallrColors.borderSubtle),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(icon, color: RecallrColors.textPrimary, size: 20),
-                const Icon(Icons.north_east_rounded, size: 12, color: RecallrColors.textTertiary),
-              ],
-            ),
-            Text(
-              title,
-              style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: RecallrColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

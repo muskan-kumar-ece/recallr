@@ -33,21 +33,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     final email = user?.email ?? 'Not Signed In';
     final displayName = user?.displayName ?? 'Professional';
-    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
       backgroundColor: RecallrColors.obsidianBase,
-      appBar: canPop
-          ? AppBar(
-              backgroundColor: RecallrColors.obsidianBase,
-              leading: RecallrIconButton(
-                icon: Icons.arrow_back_rounded,
-                onPressed: () => Navigator.of(context).pop(),
-                tooltip: 'Back',
-              ),
-              title: const Text('Settings'),
-            )
-          : null,
+      appBar: AppBar(
+        backgroundColor: RecallrColors.obsidianBase,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Settings & Preferences'),
+        leading: RecallrIconButton(
+          icon: Icons.arrow_back_rounded,
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          },
+          tooltip: 'Back',
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -55,36 +57,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
               children: [
-                // Header (if not shown in AppBar)
-                if (!canPop) ...[
-                  const Text(
-                    'Settings',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 28.0,
-                      fontWeight: FontWeight.w700,
-                      color: RecallrColors.textPrimary,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6.0),
-                  const Text(
-                    'Manage your account, personal information and reminders.',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13.0,
-                      color: RecallrColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 20.0),
-                ],
-
-                // ── User Profile Mini-Card ────────────────────────────────────
+                // ── User Profile Card ─────────────────────────────────────────
                 Container(
-                  padding: const EdgeInsets.all(14.0),
+                  padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
                     color: RecallrColors.charcoalCard,
-                    borderRadius: BorderRadius.circular(14.0),
+                    borderRadius: BorderRadius.circular(16.0),
                     border: Border.all(color: RecallrColors.borderSubtle),
                   ),
                   child: Row(
@@ -92,30 +70,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       RecallrAvatar(
                         initials: displayName.isNotEmpty ? displayName.substring(0, 1).toUpperCase() : 'U',
                         imageUrl: user?.photoURL,
-                        size: RecallrAvatarSize.md,
+                        size: RecallrAvatarSize.lg,
                       ),
-                      const SizedBox(width: 12.0),
+                      const SizedBox(width: 14.0),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               displayName,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 16.0,
-                                fontWeight: FontWeight.w700,
-                                color: RecallrColors.textPrimary,
-                              ),
+                              style: RecallrTypography.headlineMedium.copyWith(fontSize: 18),
                             ),
-                            const SizedBox(height: 2.0),
+                            const SizedBox(height: 2),
                             Text(
                               email,
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12.0,
-                                color: RecallrColors.textSecondary,
-                              ),
+                              style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
@@ -128,80 +97,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20.0),
+                const SizedBox(height: 24.0),
 
-                // ── 5 Core Sections per Reference ─────────────────────────────
-                _SettingsMenuTile(
-                  icon: Icons.notifications_none_rounded,
-                  title: 'Notification Management',
-                  subtitle: 'Reminders, follow-ups and notification preferences.',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Notification settings updated')),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8.0),
-                _SettingsMenuTile(
-                  icon: Icons.person_outline_rounded,
-                  title: 'Account',
-                  subtitle: 'Sign-in method, security and account management.',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Signed in as $email')),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8.0),
-                _SettingsMenuTile(
-                  icon: Icons.badge_outlined,
-                  title: 'Personal Information',
-                  subtitle: 'Your name, photo, contact details and personal bio.',
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Profile details are up to date')),
-                    );
-                  },
-                ),
-                const SizedBox(height: 8.0),
-                _SettingsMenuTile(
-                  icon: Icons.qr_code_2_rounded,
-                  title: 'Your QR Code & Bio',
-                  subtitle: 'View and share your Recallr identity.',
-                  onTap: () {
-                    _showQrBioSheet(context, displayName, email);
-                  },
-                ),
-                const SizedBox(height: 8.0),
-                _SettingsMenuTile(
-                  icon: Icons.contact_page_outlined,
-                  title: 'Digital Visiting Card',
-                  subtitle: 'Design and manage your shareable professional card.',
-                  onTap: () {
-                    _showVisitingCardSheet(context, displayName, email);
-                  },
-                ),
-                const SizedBox(height: 20.0),
-
-                // ── Membership & AI Credits ───────────────────────────────────
-                _SettingsMenuTile(
-                  icon: Icons.workspace_premium_rounded,
-                  iconColor: RecallrColors.warmAmberGold,
-                  iconBgColor: const Color(0xFF281E10),
-                  title: 'Subscription & Storage',
-                  subtitle: 'Manage tier, AI credits, and cloud media quotas',
-                  onTap: () => Navigator.of(context).pushNamed(RecallrRoutes.subscription),
-                ),
-                const SizedBox(height: 20.0),
-
-                // ── App Controls & AI Strictness ──────────────────────────────
+                // ── 5 Core Management Tiles (from Sketch) ─────────────────────
                 const Text(
-                  'APP PREFERENCES',
+                  'PREFERENCES & MANAGEMENT',
                   style: TextStyle(
                     fontSize: 11.0,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.0,
                     color: RecallrColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: 10.0),
+                _buildManagementTile(
+                  icon: Icons.person_outline_rounded,
+                  title: 'Profile Details',
+                  subtitle: 'Manage bio, digital card and contact info',
+                  onTap: () => _showVisitingCardSheet(context, displayName, email),
+                ),
+                const SizedBox(height: 8.0),
+                _buildManagementTile(
+                  icon: Icons.hub_outlined,
+                  title: 'Manage Network',
+                  subtitle: 'Tags, circles, relationship thresholds and categories',
+                  onTap: () => Navigator.of(context).pushNamed(RecallrRoutes.people),
+                ),
+                const SizedBox(height: 8.0),
+                _buildManagementTile(
+                  icon: Icons.qr_code_2_rounded,
+                  title: 'QR Bio / My Card',
+                  subtitle: 'Instant contact sharing QR and public handle',
+                  onTap: () => _showQrBioSheet(context, displayName, email),
+                ),
+                const SizedBox(height: 8.0),
+                _buildManagementTile(
+                  icon: Icons.notifications_none_rounded,
+                  title: 'Reminders & Follow-ups',
+                  subtitle: 'Commitment tracking schedules and alerts',
+                  onTap: () => Navigator.of(context).pushNamed(RecallrRoutes.followUps),
+                ),
+                const SizedBox(height: 8.0),
+                _buildManagementTile(
+                  icon: Icons.workspace_premium_rounded,
+                  title: 'Subscription & Storage',
+                  subtitle: 'AI credits, plan upgrades and media capacity',
+                  onTap: () => Navigator.of(context).pushNamed(RecallrRoutes.subscription),
+                ),
+                const SizedBox(height: 24.0),
+
+                // ── AI & Grounding Controls ──────────────────────────────────
+                const Text(
+                  'AI & Grounding Controls',
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w600,
+                    color: RecallrColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 10.0),
@@ -215,39 +166,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       border: Border.all(color: RecallrColors.borderSubtle),
                     ),
                     child: Column(
+                      children: [
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Strict Grounding Mode', style: RecallrTypography.bodyLarge),
+                          subtitle: Text(
+                            'Only return facts cited directly from verified memory claims.',
+                            style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                          ),
+                          value: _aiGroundingStrict,
+                          activeThumbColor: RecallrColors.aiElectricViolet,
+                          onChanged: (val) {
+                            setState(() => _aiGroundingStrict = val);
+                          },
+                        ),
+                        const Divider(color: RecallrColors.borderSubtle, height: 1),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Local Offline Persistence', style: RecallrTypography.bodyLarge),
+                          subtitle: Text(
+                            'Cache recent people, activities, and relationship scores on device.',
+                            style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                          ),
+                          value: _offlineCacheEnabled,
+                          activeThumbColor: RecallrColors.aiElectricViolet,
+                          onChanged: (val) {
+                            setState(() => _offlineCacheEnabled = val);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24.0),
+
+                // ── Security & Multi-Tenancy ──────────────────────────────────
+                const Text(
+                  'Security & Storage',
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w600,
+                    color: RecallrColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 10.0),
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  decoration: BoxDecoration(
+                    color: RecallrColors.charcoalCard,
+                    borderRadius: BorderRadius.circular(14.0),
+                    border: Border.all(color: RecallrColors.borderSubtle),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Strict Grounding Mode', style: RecallrTypography.bodyLarge),
-                        subtitle: Text(
-                          'Only return facts cited directly from verified memory records.',
-                          style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
-                        ),
-                        value: _aiGroundingStrict,
-                        activeThumbColor: RecallrColors.aiElectricViolet,
-                        onChanged: (val) {
-                          setState(() => _aiGroundingStrict = val);
-                        },
+                      Row(
+                        children: [
+                          const Icon(Icons.shield_outlined, size: 20, color: RecallrColors.emeraldVerified),
+                          const SizedBox(width: 8.0),
+                          const Text('Tenant Isolation & App Check', style: RecallrTypography.titleMedium),
+                        ],
                       ),
-                      const Divider(color: RecallrColors.borderSubtle, height: 1),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Local Offline Persistence', style: RecallrTypography.bodyLarge),
-                        subtitle: Text(
-                          'Cache recent contacts, activities, and relationship scores locally.',
-                          style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
-                        ),
-                        value: _offlineCacheEnabled,
-                        activeThumbColor: RecallrColors.aiElectricViolet,
-                        onChanged: (val) {
-                          setState(() => _offlineCacheEnabled = val);
-                        },
+                      const SizedBox(height: 8.0),
+                      Text(
+                        'Your data is protected by strict Firebase Security Rules isolated to your authenticated UID (${user?.uid ?? "Anonymous"}).',
+                        style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 24.0),
+                const SizedBox(height: 28.0),
 
                 // ── Sign Out Button ───────────────────────────────────────────
                 RecallrButton(
@@ -260,10 +248,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     await _effectiveAuthService.signOut();
                   },
                 ),
+                const SizedBox(height: 16.0),
+                Center(
+                  child: Text(
+                    'Recallr v1.0.0 — Unified Relationship Intelligence',
+                    style: RecallrTypography.monoMetadata.copyWith(color: RecallrColors.textTertiary),
+                  ),
+                ),
                 const SizedBox(height: 80.0),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManagementTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+        decoration: BoxDecoration(
+          color: RecallrColors.charcoalCard,
+          borderRadius: BorderRadius.circular(12.0),
+          border: Border.all(color: RecallrColors.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: RecallrColors.aiElectricViolet.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Icon(icon, color: RecallrColors.aiElectricViolet, size: 18),
+            ),
+            const SizedBox(width: 12.0),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w600,
+                      color: RecallrColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2.0),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12.0,
+                      color: RecallrColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14.0, color: RecallrColors.textTertiary),
+          ],
         ),
       ),
     );
@@ -350,92 +404,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Settings Menu Tile ───────────────────────────────────────────────────────
-
-class _SettingsMenuTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final Color? iconColor;
-  final Color? iconBgColor;
-
-  const _SettingsMenuTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.iconColor,
-    this.iconBgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14.0),
-      child: Container(
-        padding: const EdgeInsets.all(14.0),
-        decoration: BoxDecoration(
-          color: RecallrColors.charcoalCard,
-          borderRadius: BorderRadius.circular(14.0),
-          border: Border.all(color: RecallrColors.borderSubtle, width: 1.0),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 42.0,
-              height: 42.0,
-              decoration: BoxDecoration(
-                color: iconBgColor ?? const Color(0xFF221E42),
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Icon(
-                icon,
-                color: iconColor ?? RecallrColors.aiElectricViolet,
-                size: 22.0,
-              ),
-            ),
-            const SizedBox(width: 14.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w600,
-                      color: RecallrColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2.0),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12.0,
-                      color: RecallrColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: RecallrColors.textTertiary,
-              size: 20.0,
-            ),
           ],
         ),
       ),

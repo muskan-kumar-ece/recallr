@@ -451,6 +451,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          HomeHeader(
+            userName: widget.userName,
+          ),
+          RecallrSpacing.gapLg,
+
           // ── 1. Welcome Hero Card (Dark Indigo Carousel) ──────────────────────
           _WelcomeHeroCard(userName: widget.userName),
           const SizedBox(height: 24.0),
@@ -471,22 +476,44 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24.0),
 
-          // ── 4. Intelligent Attention & Momentum If Present ───────────────────
+          // ── 4. Search & Quick Capture ────────────────────────────────────────
+          const MemorySearchCard(),
+          RecallrSpacing.gapMd,
+          const QuickCaptureTile(),
+          RecallrSpacing.gapLg,
+
+          // ── 5. Intelligent Attention & Momentum If Present ───────────────────
           if (relationshipAttentions.isNotEmpty) ...[
             RelationshipAttentionSection(
               attentionItems: relationshipAttentions,
             ),
-            const SizedBox(height: 24.0),
+            RecallrSpacing.gapLg,
           ],
 
           if (attentionItems.isNotEmpty) ...[
             NeedsAttentionSection(
               items: attentionItems,
             ),
-            const SizedBox(height: 24.0),
+            RecallrSpacing.gapLg,
           ],
 
-          // ── 5. Quick Access to Network Intelligence ───────────────────────────
+          // ── 6. Key Contacts & Recent Memories ────────────────────────────────
+          if (recentPeople.isNotEmpty) ...[
+            RecentPeopleSection(
+              items: recentPeople,
+            ),
+            RecallrSpacing.gapLg,
+          ],
+          if (recentMemories.isNotEmpty) ...[
+            RecentMemoriesSection(
+              items: recentMemories,
+            ),
+            RecallrSpacing.gapLg,
+          ],
+
+          // ── 7. Memory Pulse & Quick Access to Network Intelligence ───────────
+          MemoryPulse(stats: stats),
+          RecallrSpacing.gapLg,
           _buildNetworkHealthCard(context),
           const SizedBox(height: 80.0),
         ],
@@ -830,13 +857,15 @@ class _LatestThingsSection extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Latest things',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 18.0,
-                fontWeight: FontWeight.w700,
-                color: RecallrColors.textPrimary,
+            const Expanded(
+              child: Text(
+                'Latest things',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.w700,
+                  color: RecallrColors.textPrimary,
+                ),
               ),
             ),
             InkWell(

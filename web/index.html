@@ -4,15 +4,20 @@
   <base href="/">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A Flutter application with Firebase Authentication and Firestore.">
+  <meta name="description" content="Recallr — Sovereign Personal AI Memory Network.">
   <meta name="google-signin-client_id" content="326057321055-ja0uaq0fdieg2c5op006l1g30a7m33qp.apps.googleusercontent.com">
+
+  <!-- Anti-Cache Directives -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="recaller">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Recallr">
   <link rel="manifest" href="manifest.json">
-  <title>Recaller</title>
+  <title>Recallr — Personal AI Memory Network</title>
 </head>
 <body>
   <!-- Razorpay Checkout -->
@@ -40,6 +45,16 @@
     };
   </script>
 
+  <script>
+    // Force service worker update check on load to prevent stale asset retention
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (var i = 0; i < registrations.length; i++) {
+          registrations[i].update();
+        }
+      });
+    }
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

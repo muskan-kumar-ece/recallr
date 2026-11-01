@@ -39,7 +39,10 @@ migrate_working_dir/
 # Firebase cache
 .firebase/
 
-# Symbolication related
+# Release archives
+*.apk
+*.zip
+*.ipa
 app.*.symbols
 
 # Obfuscation related

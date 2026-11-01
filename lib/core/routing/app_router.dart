@@ -12,6 +12,7 @@ import '../../screens/entities/file_dossier_screen.dart';
 import '../../screens/entities/interaction_dossier_screen.dart';
 import '../../screens/settings/settings_screen.dart';
 import '../../screens/settings/subscription_screen.dart';
+import '../../screens/activity/activity_screen.dart';
 import '../../screens/common/not_found_screen.dart';
 import '../../screens/follow_ups/follow_ups_screen.dart';
 import '../../screens/network/network_dashboard_screen.dart';
@@ -66,7 +67,7 @@ class AppRouter {
       );
     }
     if (path == RecallrRoutes.activity) {
-      return _buildRoute(RecallrAppShell(user: user, initialIndex: 3), settings);
+      return _buildRoute(const ActivityScreen(), settings);
     }
 
     // Global Shell Action Entry Route (/capture)

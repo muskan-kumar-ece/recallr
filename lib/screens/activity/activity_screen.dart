@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
+import '../../core/routing/recallr_routes.dart';
 import '../../core/theme/theme.dart';
 import '../../core/utils/share_formatter.dart';
 import '../../core/widgets/destructive_confirm_dialog.dart';
@@ -290,10 +291,32 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
   }
 
+  PreferredSizeWidget? _buildAppBar(BuildContext context) {
+    if (!Navigator.of(context).canPop()) return null;
+    return AppBar(
+      backgroundColor: RecallrColors.obsidianBase,
+      elevation: 0,
+      leading: RecallrIconButton(
+        icon: Icons.arrow_back_rounded,
+        onPressed: () {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            Navigator.of(context).pushReplacementNamed(RecallrRoutes.initial);
+          }
+        },
+        tooltip: 'Back',
+      ),
+      title: const Text('Activity Timeline'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isError) {
       return Scaffold(
+        backgroundColor: RecallrColors.obsidianBase,
+        appBar: _buildAppBar(context),
         body: Center(
           child: Padding(
             padding: RecallrSpacing.pagePadding,
@@ -308,13 +331,17 @@ class _ActivityScreenState extends State<ActivityScreen> {
     }
 
     if (_isLoading) {
-      return const Scaffold(
-        body: ActivityLoadingState(),
+      return Scaffold(
+        backgroundColor: RecallrColors.obsidianBase,
+        appBar: _buildAppBar(context),
+        body: const ActivityLoadingState(),
       );
     }
 
     if (_isEmpty || (_allActivities.isEmpty && widget.initialActivities == null)) {
       return Scaffold(
+        backgroundColor: RecallrColors.obsidianBase,
+        appBar: _buildAppBar(context),
         body: ActivityEmptyState(
           isSearchEmpty: _searchQuery.isNotEmpty || _selectedFilter != ActivityFilter.all,
           onClearSearch: () {
@@ -332,6 +359,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final filtered = _filteredActivities;
 
     return Scaffold(
+      backgroundColor: RecallrColors.obsidianBase,
+      appBar: _buildAppBar(context),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isDesktop = constraints.maxWidth >= 1024;

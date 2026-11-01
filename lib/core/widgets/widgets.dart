@@ -22,6 +22,8 @@ export 'avatars/recallr_avatar.dart';
 // Overlays & Dialogs
 export 'overlays/recallr_bottom_sheet.dart';
 export 'overlays/recallr_dialog.dart';
+export 'overlays/qr_bio_sheet.dart';
+export 'overlays/visiting_card_sheet.dart';
 export 'quota_exceeded_dialog.dart';
 
 // States & Feedback

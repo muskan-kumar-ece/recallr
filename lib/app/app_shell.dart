@@ -116,6 +116,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
   String? _askQuery;
   final AuthService _authService = AuthService();
   late List<Widget> _pages;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
@@ -160,7 +161,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     }
   }
 
-  /// Nav destinations for display — 4 real destinations (+ button is handled separately).
+  /// Nav destinations for display â€” 4 real destinations (+ button is handled separately).
   static const List<_NavDestination> _destinations = [
     _NavDestination(
       label: 'Home',
@@ -188,8 +189,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
   ///   0 = Home, 1 = People, 2 = Ask (page index 2), 3 = Settings (page index 3)
   /// The + button at nav position 2 does NOT set a tab.
   void selectTab(int index, {String? askQuery}) {
-    // Map logical tab index → internal page index
-    // 0→0 (Home), 1→1 (People), 2→2 (Ask), 3→3 (Settings)
+    // Map logical tab index â†’ internal page index
+    // 0â†’0 (Home), 1â†’1 (People), 2â†’2 (Ask), 3â†’3 (Settings)
     final pageIndex = index.clamp(0, 3);
     if (_selectedIndex != pageIndex || (askQuery != null && askQuery != _askQuery)) {
       setState(() {
@@ -214,9 +215,9 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
       case 2:
         _openQuickCapture();
       case 3:
-        selectTab(2); // Ask screen → page index 2
+        selectTab(2); // Ask screen â†’ page index 2
       case 4:
-        selectTab(3); // Settings screen → page index 3
+        selectTab(3); // Settings screen â†’ page index 3
     }
   }
 
@@ -236,9 +237,9 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
       case 1:
         return 1; // People
       case 2:
-        return 3; // Ask → nav pos 3
+        return 3; // Ask â†’ nav pos 3
       case 3:
-        return 4; // Settings → nav pos 4
+        return 4; // Settings â†’ nav pos 4
       default:
         return 0;
     }
@@ -280,8 +281,10 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
             final isDesktop = width >= kDesktopBreakpoint;
 
             return Scaffold(
+              key: _scaffoldKey,
               backgroundColor: RecallrColors.obsidianBase,
               appBar: _buildAppBar(),
+              drawer: _buildAppDrawer(context),
               body: Row(
                 children: [
                   if (!isMobile) ...[
@@ -310,7 +313,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     );
   }
 
-  /// Top Dynamic AppBar — hamburger on home, back arrow on sub-screens.
+  /// Top Dynamic AppBar â€” hamburger on home, back arrow on sub-screens.
   PreferredSizeWidget _buildAppBar() {
     final initials = widget.user?.displayName?.isNotEmpty == true
         ? widget.user!.displayName!.substring(0, 1)
@@ -323,9 +326,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           ? IconButton(
               icon: const Icon(Icons.menu_rounded, color: RecallrColors.textSecondary),
               tooltip: 'Menu',
-              onPressed: () {
-                // Drawer / side menu placeholder
-              },
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             )
           : null,
       title: isHome
@@ -417,7 +418,11 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           icon: Icons.qr_code_scanner_rounded,
           tooltip: 'QR Scanner',
           onPressed: () {
-            // QR scanner placeholder
+            final name = widget.user?.displayName?.isNotEmpty == true
+                ? widget.user!.displayName!
+                : 'Professional';
+            final email = widget.user?.email ?? 'muskan.test.recallr@gmail.com';
+            QrBioSheet.show(context, name: name, email: email);
           },
         ),
         const SizedBox(width: 4.0),
@@ -727,6 +732,194 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAppDrawer(BuildContext context) {
+    final name = widget.user?.displayName?.isNotEmpty == true
+        ? widget.user!.displayName!
+        : 'Muskan Kumar';
+    final email = widget.user?.email ?? 'muskan.test.recallr@gmail.com';
+
+    return Drawer(
+      backgroundColor: RecallrColors.obsidianBase,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44.0,
+                    height: 44.0,
+                    decoration: BoxDecoration(
+                      gradient: RecallrColors.aiGradient,
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'R',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          email,
+                          style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: RecallrColors.borderSubtle, height: 1.0),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                children: [
+                  _buildDrawerTile(
+                    icon: Icons.home_rounded,
+                    title: 'Home',
+                    isSelected: _selectedIndex == 0,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      selectTab(0);
+                    },
+                  ),
+                  _buildDrawerTile(
+                    icon: Icons.people_outline_rounded,
+                    title: 'People Directory',
+                    isSelected: _selectedIndex == 1,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      selectTab(1);
+                    },
+                  ),
+                  _buildDrawerTile(
+                    icon: Icons.search_rounded,
+                    title: 'Search & Ask Recallr',
+                    isSelected: _selectedIndex == 2,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      selectTab(2);
+                    },
+                  ),
+                  _buildDrawerTile(
+                    icon: Icons.history_rounded,
+                    title: 'Activity Timeline',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed(RecallrRoutes.activity);
+                    },
+                  ),
+                  _buildDrawerTile(
+                    icon: Icons.task_alt_rounded,
+                    title: 'Follow-ups & Commitments',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed(RecallrRoutes.followUps);
+                    },
+                  ),
+                  _buildDrawerTile(
+                    icon: Icons.hub_outlined,
+                    title: 'Network Intelligence',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed(RecallrRoutes.network);
+                    },
+                  ),
+                  _buildDrawerTile(
+                    icon: Icons.workspace_premium_outlined,
+                    title: 'Subscription & Credits',
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).pushNamed(RecallrRoutes.subscription);
+                    },
+                  ),
+                  _buildDrawerTile(
+                    icon: Icons.settings_outlined,
+                    title: 'Settings & Preferences',
+                    isSelected: _selectedIndex == 3,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      selectTab(3);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: RecallrColors.borderSubtle, height: 1.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: ListTile(
+                leading: const Icon(Icons.logout_rounded, color: RecallrColors.crimsonAlert, size: 20.0),
+                title: Text(
+                  'Sign Out',
+                  style: RecallrTypography.bodyMedium.copyWith(
+                    color: RecallrColors.crimsonAlert,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await FirebaseAuth.instance.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamedAndRemoveUntil(RecallrRoutes.auth, (r) => false);
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerTile({
+    required IconData icon,
+    required String title,
+    bool isSelected = false,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        color: isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textSecondary,
+        size: 20.0,
+      ),
+      title: Text(
+        title,
+        style: RecallrTypography.bodyMedium.copyWith(
+          color: isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textPrimary,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+      selected: isSelected,
+      selectedTileColor: RecallrColors.aiElectricViolet.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+      onTap: onTap,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
+import '../../core/routing/recallr_routes.dart';
 import '../../core/theme/theme.dart';
 import '../../core/widgets/widgets.dart';
 import '../../features/subscription/models/subscription_models.dart';
@@ -35,7 +36,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   @override
   void initState() {
     super.initState();
-    _initSubscription();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_subscriptionSub == null) {
+      _initSubscription();
+    }
   }
 
   void _initSubscription() {
@@ -192,7 +200,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         elevation: 0,
         leading: RecallrIconButton(
           icon: Icons.arrow_back_rounded,
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              Navigator.of(context).pushReplacementNamed(RecallrRoutes.initial);
+            }
+          },
           tooltip: 'Back',
         ),
         actions: [

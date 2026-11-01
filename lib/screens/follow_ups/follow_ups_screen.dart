@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
+import '../../core/routing/recallr_routes.dart';
 import '../../core/theme/theme.dart';
 import '../../core/utils/share_formatter.dart';
 import '../../core/widgets/destructive_confirm_dialog.dart';
@@ -332,10 +333,32 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
     }
   }
 
+  PreferredSizeWidget? _buildAppBar(BuildContext context) {
+    if (!Navigator.of(context).canPop()) return null;
+    return AppBar(
+      backgroundColor: RecallrColors.obsidianBase,
+      elevation: 0,
+      leading: RecallrIconButton(
+        icon: Icons.arrow_back_rounded,
+        onPressed: () {
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            Navigator.of(context).pushReplacementNamed(RecallrRoutes.initial);
+          }
+        },
+        tooltip: 'Back',
+      ),
+      title: const Text('Follow-ups & Commitments'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isError) {
       return Scaffold(
+        backgroundColor: RecallrColors.obsidianBase,
+        appBar: _buildAppBar(context),
         body: Center(
           child: Padding(
             padding: RecallrSpacing.pagePadding,
@@ -350,13 +373,17 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
     }
 
     if (_isLoading) {
-      return const Scaffold(
-        body: FollowUpLoadingState(),
+      return Scaffold(
+        backgroundColor: RecallrColors.obsidianBase,
+        appBar: _buildAppBar(context),
+        body: const FollowUpLoadingState(),
       );
     }
 
     if (_isEmpty || (_allFollowUps.isEmpty && widget.initialFollowUps == null)) {
       return Scaffold(
+        backgroundColor: RecallrColors.obsidianBase,
+        appBar: _buildAppBar(context),
         body: FollowUpEmptyState(
           isSearchEmpty: _searchQuery.isNotEmpty || _selectedFilter != FollowUpFilter.all,
           onClearSearch: () {
@@ -374,6 +401,8 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
     final filtered = _filteredFollowUps;
 
     return Scaffold(
+      backgroundColor: RecallrColors.obsidianBase,
+      appBar: _buildAppBar(context),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 768;

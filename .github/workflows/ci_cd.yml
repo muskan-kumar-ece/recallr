@@ -114,3 +114,77 @@ jobs:
           if [ -f "$RUNNER_TEMP/keystore/release.keystore" ]; then
             shred -u "$RUNNER_TEMP/keystore/release.keystore" 2>/dev/null || rm -f "$RUNNER_TEMP/keystore/release.keystore"
           fi
+
+  build_ios_release:
+    name: Build iOS Archive & Unsigned IPA
+    needs: validate_and_test
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build iOS Archive
+        run: flutter build ios --release --no-codesign
+
+      - name: Create Unsigned IPA Payload
+        run: |
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos
+          zip -r recallr-ios-unsigned.ipa Payload/
+
+      - name: Upload iOS Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-archive
+          path: build/ios/iphoneos/recallr-ios-unsigned.ipa
+          if-no-files-found: warn
+          retention-days: 14
+
+  build_web_release:
+    name: Build Web Release Bundle
+    needs: validate_and_test
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Web Release
+        run: flutter build web --release
+
+      - name: Package Web Release Zip
+        run: |
+          cd build/web
+          zip -r ../../recallr-web-release.zip .
+
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-release-bundle
+          path: recallr-web-release.zip
+          if-no-files-found: warn
+          retention-days: 14

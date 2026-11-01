@@ -45,6 +45,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () {
             if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
+            } else {
+              Navigator.of(context).pushReplacementNamed(RecallrRoutes.initial);
             }
           },
           tooltip: 'Back',
@@ -324,89 +326,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showQrBioSheet(BuildContext context, String name, String email) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: RecallrColors.slateSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: RecallrColors.borderHighlight, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 16),
-            const Text('Your Recallr QR Identity', style: RecallrTypography.headlineMedium),
-            const SizedBox(height: 8),
-            Text('Scan to connect and exchange verified contact info with $name', style: RecallrTypography.bodyMedium, textAlign: TextAlign.center),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-              child: const Icon(Icons.qr_code_2_rounded, size: 140, color: Colors.black),
-            ),
-            const SizedBox(height: 16),
-            Text(email, style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textSecondary)),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
+    QrBioSheet.show(context, name: name, email: email);
   }
 
   void _showVisitingCardSheet(BuildContext context, String name, String email) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: RecallrColors.slateSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
-      ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: RecallrColors.borderHighlight, borderRadius: BorderRadius.circular(2)))),
-            const SizedBox(height: 16),
-            const Text('Digital Visiting Card', style: RecallrTypography.headlineMedium),
-            const SizedBox(height: 6),
-            const Text('Your shareable professional network card preview.', style: RecallrTypography.bodyMedium),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1E1B4B), Color(0xFF2E1065)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF4338CA).withValues(alpha: 0.5)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(name, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const Icon(Icons.contactless_rounded, color: RecallrColors.aiElectricViolet),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text('Member · Verified Network', style: TextStyle(color: Color(0xFFA5B4FC), fontSize: 12)),
-                  const SizedBox(height: 20),
-                  Text(email, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
+    VisitingCardSheet.show(context, name: name, email: email);
   }
 }

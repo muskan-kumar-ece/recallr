@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
+import '../../core/routing/recallr_routes.dart';
 import '../../core/theme/theme.dart';
 import '../../core/utils/share_formatter.dart';
 import '../../core/widgets/destructive_confirm_dialog.dart';
@@ -585,6 +586,47 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
               PersonFollowUpsSection(items: profile.followUps),
               RecallrSpacing.gapLg,
               ConnectedEntitiesSection(items: profile.connectedEntities),
+              RecallrSpacing.gapLg,
+              // ── Location, Scheduling, and WhatsApp Action Rows ──────────────
+              _buildPersonActionRow(
+                icon: Icons.location_on_outlined,
+                iconColor: RecallrColors.aiElectricViolet,
+                title: 'Meeting location',
+                subtitle: profile.location.isNotEmpty ? profile.location : 'Add a location or meeting place',
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(profile.location.isNotEmpty ? 'Location: ${profile.location}' : 'Add location')),
+                  );
+                },
+              ),
+              const SizedBox(height: 8.0),
+              _buildPersonActionRow(
+                icon: Icons.calendar_month_outlined,
+                iconColor: RecallrColors.aiElectricViolet,
+                title: 'Schedule a meeting',
+                subtitle: 'Create a calendar event or reminder',
+                onTap: () {
+                  Navigator.of(context).pushNamed(RecallrRoutes.followUps);
+                },
+              ),
+              const SizedBox(height: 8.0),
+              _buildPersonActionRow(
+                icon: Icons.message_rounded,
+                iconColor: RecallrColors.emeraldVerified,
+                title: 'Contact via WhatsApp',
+                subtitle: (profile.phone?.isNotEmpty == true) ? 'Message ${profile.phone}' : 'Available when a valid phone number is saved',
+                onTap: () {
+                  if (profile.phone?.isNotEmpty == true) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Opening WhatsApp for ${profile.phone}')),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Add a phone number in contact details to enable WhatsApp')),
+                    );
+                  }
+                },
+              ),
             ]),
           ),
         ),
@@ -592,6 +634,69 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           child: SizedBox(height: 80.0),
         ),
       ],
+    );
+  }
+
+  Widget _buildPersonActionRow({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14.0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
+        decoration: BoxDecoration(
+          color: RecallrColors.charcoalCard,
+          borderRadius: BorderRadius.circular(14.0),
+          border: Border.all(color: RecallrColors.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36.0,
+              height: 36.0,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Icon(icon, color: iconColor, size: 20.0),
+            ),
+            const SizedBox(width: 12.0),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w600,
+                      color: RecallrColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2.0),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11.5,
+                      color: RecallrColors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: RecallrColors.textTertiary, size: 18.0),
+          ],
+        ),
+      ),
     );
   }
 

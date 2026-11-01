@@ -8,8 +8,6 @@ import '../../features/people/widgets/people_empty_state.dart';
 import '../../features/people/widgets/people_filters.dart';
 import '../../features/people/widgets/people_header.dart';
 import '../../features/people/widgets/people_search.dart';
-import '../../features/people/widgets/person_card.dart';
-import '../../features/people/widgets/recently_interacted.dart';
 import '../../features/relationship_intelligence/models/models.dart';
 import '../../repositories/people_repository.dart';
 import '../capture/capture_modal.dart';
@@ -308,6 +306,16 @@ class _PeopleScreenState extends State<PeopleScreen> {
     return list;
   }
 
+  // ─── Category helpers ─────────────────────────────────────────────────────
+
+  int _countByRelationshipType(RelationshipContextType type) =>
+      _allPeople.where((p) => p.relationshipType == type).length;
+
+  int _countByRole(String keyword) =>
+      _allPeople.where((p) => p.role.toLowerCase().contains(keyword.toLowerCase())).length;
+
+  // ─── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     if (_isError) {
@@ -345,18 +353,326 @@ class _PeopleScreenState extends State<PeopleScreen> {
     final filtered = _filteredPeople;
 
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 768;
-          final double maxWidth = constraints.maxWidth > 1100 ? 1040 : double.infinity;
-
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxWidth),
-              child: isWide ? _buildWideLayout(filtered) : _buildMobileLayout(filtered),
+      backgroundColor: RecallrColors.obsidianBase,
+      appBar: AppBar(
+        backgroundColor: RecallrColors.obsidianBase,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: RecallrColors.textPrimary),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text(
+          'People',
+          style: RecallrTypography.titleMedium,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search_rounded, color: RecallrColors.textSecondary, size: 22),
+            onPressed: () {},
+            tooltip: 'Search',
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_rounded, color: RecallrColors.aiElectricViolet, size: 24),
+            onPressed: _handleAddPerson,
+            tooltip: 'Add person',
+          ),
+          const SizedBox(width: 4),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Divider(height: 1, thickness: 1, color: RecallrColors.borderSubtle),
+        ),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Categories Grid ──────────────────────────────────────────────
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Organize your people and relationships.',
+                    style: RecallrTypography.bodyMedium.copyWith(
+                      color: RecallrColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 1.4,
+                    children: [
+                      _CategoryCard(
+                        label: 'Friends',
+                        icon: Icons.people_outline_rounded,
+                        iconBgColor: const Color(0xFF2D1B8E).withValues(alpha: 0.4),
+                        iconColor: const Color(0xFF7C6AF0),
+                        count: _countByRelationshipType(RelationshipContextType.collaborator),
+                        onTap: () {
+                          final newQuery = _searchQuery == 'Friends' ? '' : 'Friends';
+                          _searchController.text = newQuery;
+                          _onSearchChanged(newQuery);
+                        },
+                      ),
+                      _CategoryCard(
+                        label: 'Work',
+                        icon: Icons.work_outline_rounded,
+                        iconBgColor: const Color(0xFF0D3D30).withValues(alpha: 0.5),
+                        iconColor: RecallrColors.emeraldVerified,
+                        count: _countByRelationshipType(RelationshipContextType.colleague),
+                        onTap: () {
+                          final newQuery = _searchQuery == 'Work' ? '' : 'Work';
+                          _searchController.text = newQuery;
+                          _onSearchChanged(newQuery);
+                        },
+                      ),
+                      _CategoryCard(
+                        label: 'College',
+                        icon: Icons.school_outlined,
+                        iconBgColor: const Color(0xFF0D2A3D).withValues(alpha: 0.5),
+                        iconColor: const Color(0xFF38BDF8),
+                        count: _countByRole('student') + _countByRole('classmate'),
+                        onTap: () {
+                          final newQuery = _searchQuery == 'College' ? '' : 'College';
+                          _searchController.text = newQuery;
+                          _onSearchChanged(newQuery);
+                        },
+                      ),
+                      _CategoryCard(
+                        label: 'Family',
+                        icon: Icons.favorite_outline_rounded,
+                        iconBgColor: const Color(0xFF3D0D1E).withValues(alpha: 0.5),
+                        iconColor: const Color(0xFFE879A0),
+                        count: _countByRole('family') + _countByRole('relative'),
+                        onTap: () {
+                          final newQuery = _searchQuery == 'Family' ? '' : 'Family';
+                          _searchController.text = newQuery;
+                          _onSearchChanged(newQuery);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  TextButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.expand_more_rounded,
+                      size: 18,
+                      color: RecallrColors.aiElectricViolet,
+                    ),
+                    label: const Text(
+                      'Show more categories',
+                      style: TextStyle(
+                        color: RecallrColors.aiElectricViolet,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          );
-        },
+
+            const SizedBox(height: 20),
+            const Divider(color: RecallrColors.borderSubtle, thickness: 1, height: 1),
+            const SizedBox(height: 20),
+
+            // ── People Grid ──────────────────────────────────────────────────
+            if (_allPeople.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Search bar
+                    PeopleSearch(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      onClear: () {
+                        _searchController.clear();
+                        _onSearchChanged('');
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    PeopleFilters(
+                      selectedFilter: _selectedFilter,
+                      onSelected: _onFilterChanged,
+                    ),
+                    const SizedBox(height: 12),
+                    // Count + Sort row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${filtered.length} people',
+                          style: RecallrTypography.bodyMedium.copyWith(
+                            color: RecallrColors.textTertiary,
+                            fontSize: 12,
+                          ),
+                        ),
+                        _buildSortMenuButton(),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (filtered.isEmpty)
+                      PeopleEmptyState(
+                        isSearch: true,
+                        searchQuery: _searchQuery,
+                        onClearSearch: _clearFiltersAndSearch,
+                      )
+                    else
+                      GridView.count(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        childAspectRatio: 0.82,
+                        children: filtered.map((p) => _PersonGridCard(
+                          person: p,
+                          intelligence: (_snapshot ?? widget.initialSnapshot)?.getPerson(p.id),
+                          onTap: () => Navigator.of(context).pushNamed('/person/${p.id}'),
+                          onDelete: () => _handleDeletePerson(p),
+                        )).toList(),
+                      ),
+                  ],
+                ),
+              ),
+
+            // ── Add People Row ───────────────────────────────────────────────
+            _buildAddPeopleRow(context),
+            const SizedBox(height: 80),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortMenuButton() {
+    return PopupMenuButton<PeopleSortOption>(
+      initialValue: _selectedSort,
+      onSelected: (opt) => setState(() => _selectedSort = opt),
+      color: RecallrColors.charcoalCard,
+      tooltip: 'Sort contacts',
+      shape: RoundedRectangleBorder(
+        borderRadius: RecallrRadii.radiusMd,
+        side: const BorderSide(color: RecallrColors.borderSubtle),
+      ),
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: RecallrColors.slateSurface,
+          borderRadius: RecallrRadii.radiusMd,
+          border: Border.all(color: RecallrColors.borderSubtle, width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.swap_vert_rounded, size: 14, color: RecallrColors.textTertiary),
+            const SizedBox(width: 4),
+            Text(
+              _selectedSort.label,
+              style: RecallrTypography.bodyMedium.copyWith(
+                color: RecallrColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.arrow_drop_down_rounded, size: 16, color: RecallrColors.textTertiary),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => PeopleSortOption.values.map((opt) {
+        final isSelected = opt == _selectedSort;
+        return PopupMenuItem<PeopleSortOption>(
+          value: opt,
+          child: Row(
+            children: [
+              Icon(opt.icon, size: 16, color: isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textSecondary),
+              const SizedBox(width: 8),
+              Text(
+                opt.label,
+                style: RecallrTypography.bodyMedium.copyWith(
+                  color: isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textPrimary,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAddPeopleRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: GestureDetector(
+        onTap: _handleAddPerson,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: RecallrColors.charcoalCard,
+            borderRadius: RecallrRadii.radiusLg,
+            border: Border.all(color: RecallrColors.borderSubtle, width: 1),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: RecallrColors.aiElectricViolet.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: RecallrColors.aiElectricViolet,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Add people',
+                      style: RecallrTypography.bodyMedium.copyWith(
+                        color: RecallrColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Manually, with AI, via QR, or by scanning a business card.',
+                      style: RecallrTypography.bodyMedium.copyWith(
+                        color: RecallrColors.textTertiary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_rounded, color: RecallrColors.textTertiary, size: 18),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -382,254 +698,207 @@ class _PeopleScreenState extends State<PeopleScreen> {
       ],
     );
   }
+}
 
-  Widget _buildSortMenuButton() {
-    return PopupMenuButton<PeopleSortOption>(
-      initialValue: _selectedSort,
-      onSelected: (opt) => setState(() => _selectedSort = opt),
-      color: RecallrColors.charcoalCard,
-      tooltip: 'Sort contacts',
-      shape: RoundedRectangleBorder(
-        borderRadius: RecallrRadii.radiusMd,
-        side: const BorderSide(color: RecallrColors.borderSubtle),
-      ),
+// ─── Category Card ──────────────────────────────────────────────────────────
+
+class _CategoryCard extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color iconBgColor;
+  final Color iconColor;
+  final int count;
+  final VoidCallback onTap;
+
+  const _CategoryCard({
+    required this.label,
+    required this.icon,
+    required this.iconBgColor,
+    required this.iconColor,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
-        height: 44.0,
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: RecallrColors.slateSurface,
-          borderRadius: RecallrRadii.radiusMd,
-          border: Border.all(color: RecallrColors.borderSubtle, width: 1.0),
+          color: RecallrColors.charcoalCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: RecallrColors.borderSubtle, width: 1),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(_selectedSort.icon, size: 16.0, color: RecallrColors.aiCyanHighlight),
-            const SizedBox(width: 6.0),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(height: 10),
             Text(
-              _selectedSort.label,
-              style: RecallrTypography.labelSmall.copyWith(
-                color: RecallrColors.textSecondary,
-                fontSize: 12.0,
-                fontWeight: FontWeight.w500,
+              label,
+              style: RecallrTypography.titleMedium.copyWith(
+                fontWeight: FontWeight.w700,
+                color: RecallrColors.textPrimary,
+                fontSize: 14,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '$count people',
+              style: RecallrTypography.bodyMedium.copyWith(
+                color: RecallrColors.textTertiary,
+                fontSize: 12,
               ),
             ),
-            const SizedBox(width: 4.0),
-            const Icon(Icons.arrow_drop_down_rounded, size: 18.0, color: RecallrColors.textTertiary),
           ],
         ),
       ),
-      itemBuilder: (context) => PeopleSortOption.values.map((opt) {
-        final isSelected = opt == _selectedSort;
-        return PopupMenuItem<PeopleSortOption>(
-          value: opt,
-          child: Row(
-            children: [
-              Icon(opt.icon, size: 16.0, color: isSelected ? RecallrColors.aiCyanHighlight : RecallrColors.textSecondary),
-              const SizedBox(width: 8.0),
-              Text(
-                opt.label,
-                style: RecallrTypography.bodyMedium.copyWith(
-                  color: isSelected ? RecallrColors.aiCyanHighlight : RecallrColors.textPrimary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+    );
+  }
+}
+
+// ─── Person Grid Card ────────────────────────────────────────────────────────
+
+class _PersonGridCard extends StatelessWidget {
+  final PersonItem person;
+  final VoidCallback onTap;
+  final VoidCallback? onDelete;
+  final UnifiedPersonRelationshipIntelligence? intelligence;
+
+  const _PersonGridCard({
+    required this.person,
+    required this.onTap,
+    this.onDelete,
+    this.intelligence,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = person.role.isNotEmpty ? person.role : (person.relationshipType?.name ?? '');
+
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onDelete != null
+          ? () {
+              showDialog(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: RecallrColors.slateSurface,
+                  title: Text('Delete ${person.name}?', style: RecallrTypography.titleMedium),
+                  content: const Text(
+                    'Are you sure you want to remove this person from your memory directory?',
+                    style: RecallrTypography.bodyMedium,
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Cancel', style: TextStyle(color: RecallrColors.textSecondary)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onDelete?.call();
+                      },
+                      child: const Text('Delete', style: TextStyle(color: RecallrColors.crimsonAlert)),
+                    ),
+                  ],
                 ),
+              );
+            }
+          : null,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: RecallrColors.charcoalCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: RecallrColors.borderSubtle, width: 1),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            RecallrAvatar(
+              imageUrl: person.avatarUrl,
+              initials: person.initials,
+              size: RecallrAvatarSize.lg,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              person.name,
+              style: RecallrTypography.bodyMedium.copyWith(
+                color: RecallrColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (subtitle.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: RecallrTypography.bodyMedium.copyWith(
+                  color: RecallrColors.textTertiary,
+                  fontSize: 12,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildMobileLayout(List<PersonItem> filtered) {
-    final bool hasFilterOrSearch = _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
-
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: PeopleHeader(
-            count: filtered.length,
-            onAddPerson: _handleAddPerson,
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: PeopleSearch(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    onClear: () {
-                      _searchController.clear();
-                      _onSearchChanged('');
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8.0),
-                _buildSortMenuButton(),
-              ],
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6.0),
-            child: PeopleFilters(
-              selectedFilter: _selectedFilter,
-              onSelected: _onFilterChanged,
-            ),
-          ),
-        ),
-        if (hasFilterOrSearch)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-              child: Text(
-                'Showing ${filtered.length} of ${_allPeople.length} contacts',
-                style: RecallrTypography.monoMetadata.copyWith(
-                  color: RecallrColors.textTertiary,
-                  fontSize: 11.0,
-                ),
-              ),
-            ),
-          ),
-        if (_recentlyInteracted.isNotEmpty && _searchQuery.isEmpty && _selectedFilter == PeopleFilterOption.all)
-          SliverToBoxAdapter(
-            child: RecentlyInteractedSection(
-              items: _recentlyInteracted,
-            ),
-          ),
-        if (filtered.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: PeopleEmptyState(
-              isSearch: true,
-              searchQuery: _searchQuery,
-              onClearSearch: _clearFiltersAndSearch,
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final person = filtered[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: PersonCard(
-                      person: person,
-                      intelligence: (_snapshot ?? widget.initialSnapshot)?.getPerson(person.id),
-                      onDelete: () => _handleDeletePerson(person),
+            if (person.company.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.business_outlined, size: 12, color: RecallrColors.textTertiary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      person.company,
+                      style: RecallrTypography.bodyMedium.copyWith(
+                        color: RecallrColors.textTertiary,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  );
-                },
-                childCount: filtered.length,
-              ),
-            ),
-          ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 80.0),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWideLayout(List<PersonItem> filtered) {
-    final bool hasFilterOrSearch = _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
-
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: PeopleHeader(
-            count: filtered.length,
-            onAddPerson: _handleAddPerson,
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: PeopleSearch(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    onClear: () {
-                      _searchController.clear();
-                      _onSearchChanged('');
-                    },
                   ),
-                ),
-                const SizedBox(width: 8.0),
-                _buildSortMenuButton(),
-              ],
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6.0),
-            child: PeopleFilters(
-              selectedFilter: _selectedFilter,
-              onSelected: _onFilterChanged,
-            ),
-          ),
-        ),
-        if (hasFilterOrSearch)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-              child: Text(
-                'Showing ${filtered.length} of ${_allPeople.length} contacts',
-                style: RecallrTypography.monoMetadata.copyWith(
-                  color: RecallrColors.textTertiary,
-                  fontSize: 11.0,
-                ),
+                ],
               ),
-            ),
-          ),
-        if (_recentlyInteracted.isNotEmpty && _searchQuery.isEmpty && _selectedFilter == PeopleFilterOption.all)
-          SliverToBoxAdapter(
-            child: RecentlyInteractedSection(
-              items: _recentlyInteracted,
-            ),
-          ),
-        if (filtered.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: PeopleEmptyState(
-              isSearch: true,
-              searchQuery: _searchQuery,
-              onClearSearch: _clearFiltersAndSearch,
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.all(16.0),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final person = filtered[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: PersonCard(
-                      person: person,
-                      intelligence: (_snapshot ?? widget.initialSnapshot)?.getPerson(person.id),
-                      onDelete: () => _handleDeletePerson(person),
+            ],
+            if (person.lastInteraction != null) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.access_time_rounded, size: 12, color: RecallrColors.textTertiary),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      person.lastInteraction!,
+                      style: RecallrTypography.bodyMedium.copyWith(
+                        color: RecallrColors.textTertiary,
+                        fontSize: 11,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  );
-                },
-                childCount: filtered.length,
+                  ),
+                ],
               ),
-            ),
-          ),
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 80.0),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 }

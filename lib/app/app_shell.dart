@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/theme/theme.dart';
 import '../core/widgets/widgets.dart';
-import '../screens/activity/activity_screen.dart';
 import '../screens/ask/ask_screen.dart';
 import '../screens/capture/capture_modal.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/people/people_screen.dart';
+import '../screens/settings/settings_screen.dart';
 import '../services/auth_service.dart';
 import '../core/routing/deep_link_manager.dart';
 import '../core/routing/recallr_routes.dart';
@@ -63,7 +63,6 @@ class RecallrAppShellScope extends InheritedWidget {
       RecallrRoutes.home,
       RecallrRoutes.people,
       RecallrRoutes.ask,
-      RecallrRoutes.activity,
     ];
     if (index >= 0 && index < routeNames.length) {
       Navigator.of(context).pushNamed(routeNames[index], arguments: askQuery);
@@ -112,6 +111,7 @@ class RecallrAppShell extends StatefulWidget {
 }
 
 class _RecallrAppShellState extends State<RecallrAppShell> {
+  /// Page index into _pages list (0=Home, 1=People, 2=Ask, 3=Settings)
   late int _selectedIndex;
   String? _askQuery;
   final AuthService _authService = AuthService();
@@ -146,7 +146,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
       HomeScreen(userName: widget.user?.displayName ?? widget.user?.email ?? 'Professional'),
       const PeopleScreen(),
       AskScreen(key: ValueKey('ask_${_askQuery ?? widget.initialAskQuery}'), initialQuery: _askQuery ?? widget.initialAskQuery),
-      const ActivityScreen(),
+      const SettingsScreen(),
     ];
   }
 
@@ -160,11 +160,12 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     }
   }
 
+  /// Nav destinations for display — 4 real destinations (+ button is handled separately).
   static const List<_NavDestination> _destinations = [
     _NavDestination(
       label: 'Home',
-      icon: Icons.dashboard_outlined,
-      selectedIcon: Icons.dashboard_rounded,
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
     ),
     _NavDestination(
       label: 'People',
@@ -172,21 +173,27 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
       selectedIcon: Icons.people_rounded,
     ),
     _NavDestination(
-      label: 'Ask',
+      label: 'Search',
       icon: Icons.search_rounded,
       selectedIcon: Icons.saved_search_rounded,
     ),
     _NavDestination(
-      label: 'Activity',
-      icon: Icons.task_alt_outlined,
-      selectedIcon: Icons.task_alt_rounded,
+      label: 'More',
+      icon: Icons.grid_view_outlined,
+      selectedIcon: Icons.grid_view_rounded,
     ),
   ];
 
+  /// Public API: external callers use logical indices:
+  ///   0 = Home, 1 = People, 2 = Ask (page index 2), 3 = Settings (page index 3)
+  /// The + button at nav position 2 does NOT set a tab.
   void selectTab(int index, {String? askQuery}) {
-    if (_selectedIndex != index || (askQuery != null && askQuery != _askQuery)) {
+    // Map logical tab index → internal page index
+    // 0→0 (Home), 1→1 (People), 2→2 (Ask), 3→3 (Settings)
+    final pageIndex = index.clamp(0, 3);
+    if (_selectedIndex != pageIndex || (askQuery != null && askQuery != _askQuery)) {
       setState(() {
-        _selectedIndex = index;
+        _selectedIndex = pageIndex;
         if (askQuery != null) {
           _askQuery = askQuery;
           _initPages();
@@ -196,7 +203,22 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     }
   }
 
-  void _onDestinationSelected(int index) => selectTab(index);
+  /// Called when a nav bar item is tapped.
+  /// nav positions: 0=Home, 1=People, 2=QuickAdd(special), 3=Search, 4=More
+  void _onNavTapped(int navPosition) {
+    switch (navPosition) {
+      case 0:
+        selectTab(0);
+      case 1:
+        selectTab(1);
+      case 2:
+        _openQuickCapture();
+      case 3:
+        selectTab(2); // Ask screen → page index 2
+      case 4:
+        selectTab(3); // Settings screen → page index 3
+    }
+  }
 
   void _openQuickCapture() {
     HapticFeedback.mediumImpact();
@@ -206,7 +228,36 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     );
   }
 
-  String get _currentTitle => _destinations[_selectedIndex].label;
+  /// Map page index back to nav position for highlight purposes
+  int get _activeNavPosition {
+    switch (_selectedIndex) {
+      case 0:
+        return 0; // Home
+      case 1:
+        return 1; // People
+      case 2:
+        return 3; // Ask → nav pos 3
+      case 3:
+        return 4; // Settings → nav pos 4
+      default:
+        return 0;
+    }
+  }
+
+  String get _currentTitle {
+    switch (_selectedIndex) {
+      case 0:
+        return 'Home';
+      case 1:
+        return 'People';
+      case 2:
+        return 'Search';
+      case 3:
+        return 'More';
+      default:
+        return 'Home';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -219,7 +270,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
         onPopInvokedWithResult: (bool didPop, Object? result) {
           if (didPop) return;
           if (_selectedIndex != 0) {
-            _onDestinationSelected(0);
+            selectTab(0);
           }
         },
         child: LayoutBuilder(
@@ -227,8 +278,6 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
             final width = constraints.maxWidth;
             final isMobile = width < kTabletBreakpoint;
             final isDesktop = width >= kDesktopBreakpoint;
-            final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
-            final showFab = isMobile && _selectedIndex != 2 && !keyboardOpen;
 
             return Scaffold(
               backgroundColor: RecallrColors.obsidianBase,
@@ -253,9 +302,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                   ),
                 ],
               ),
-              floatingActionButton: showFab ? _buildCaptureFab() : null,
-              floatingActionButtonLocation: showFab ? FloatingActionButtonLocation.centerDocked : null,
-              bottomNavigationBar: isMobile ? _buildBottomNavBar(showFab: showFab) : null,
+              bottomNavigationBar: isMobile ? _buildBottomNavBar() : null,
             );
           },
         ),
@@ -263,7 +310,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     );
   }
 
-  /// Top Dynamic AppBar
+  /// Top Dynamic AppBar — hamburger on home, back arrow on sub-screens.
   PreferredSizeWidget _buildAppBar() {
     final initials = widget.user?.displayName?.isNotEmpty == true
         ? widget.user!.displayName!.substring(0, 1)
@@ -272,36 +319,19 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     final isHome = _selectedIndex == 0;
 
     return AppBar(
-      title: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          RecallrBrandLogo(size: 26.0, showWordmark: isHome),
-          if (!isHome) ...[
-            const SizedBox(width: 10.0),
-            Text(_currentTitle),
-          ],
-        ],
-      ),
+      leading: isHome
+          ? IconButton(
+              icon: const Icon(Icons.menu_rounded, color: RecallrColors.textSecondary),
+              tooltip: 'Menu',
+              onPressed: () {
+                // Drawer / side menu placeholder
+              },
+            )
+          : null,
+      title: isHome
+          ? null
+          : Text(_currentTitle),
       actions: [
-        RecallrIconButton(
-          icon: Icons.search_rounded,
-          tooltip: 'Universal Search',
-          onPressed: () {
-            // Switch to Ask tab on search trigger
-            _onDestinationSelected(2);
-          },
-        ),
-        // Sync Status Indicator Dot
-        const Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: RecallrSpacing.xs),
-            child: RecallrBadge(
-              isDot: true,
-              variant: RecallrBadgeVariant.verified,
-            ),
-          ),
-        ),
-        RecallrSpacing.gapSm,
         // AI Credits & Subscription Quick Access Pill
         StreamBuilder<UserSubscription>(
           stream: context.subscriptionRepo.streamSubscription(),
@@ -382,6 +412,15 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           },
         ),
         RecallrSpacing.gapXs,
+        // QR Scanner icon
+        RecallrIconButton(
+          icon: Icons.qr_code_scanner_rounded,
+          tooltip: 'QR Scanner',
+          onPressed: () {
+            // QR scanner placeholder
+          },
+        ),
+        const SizedBox(width: 4.0),
         // User Profile Avatar with Sign Out and Subscription Menu
         PopupMenuButton<String>(
           offset: const Offset(0, 48),
@@ -393,8 +432,6 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           onSelected: (value) async {
             if (value == 'subscription') {
               Navigator.of(context).pushNamed(RecallrRoutes.subscription);
-            } else if (value == 'settings') {
-              Navigator.of(context).pushNamed('/settings');
             } else if (value == 'sign_out') {
               DeepLinkManager().consumePendingPath();
               Navigator.of(context).popUntil((route) => route.isFirst);
@@ -421,24 +458,6 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                   Expanded(
                     child: Text(
                       'Subscription & Storage',
-                      style: RecallrTypography.bodyMedium,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const PopupMenuDivider(height: 1),
-            PopupMenuItem<String>(
-              value: 'settings',
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.settings_outlined, size: 18, color: RecallrColors.textSecondary),
-                  RecallrSpacing.gapSm,
-                  Expanded(
-                    child: Text(
-                      'Settings & Preferences',
                       style: RecallrTypography.bodyMedium,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -478,30 +497,19 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     );
   }
 
-  /// Center Floating Capture FAB
-  Widget _buildCaptureFab() {
-    return Container(
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        boxShadow: [RecallrShadows.glowAi],
-      ),
-      child: FloatingActionButton(
-        onPressed: _openQuickCapture,
-        backgroundColor: RecallrColors.aiElectricViolet,
-        foregroundColor: RecallrColors.textPrimary,
-        elevation: 0,
-        shape: const CircleBorder(),
-        child: const Icon(Icons.add_rounded, size: 28.0),
-      ),
-    );
-  }
-
   Widget _buildNavigationRail({required bool isDesktop}) {
+    // For rail, map _selectedIndex to a rail index that excludes the center button
+    // Rail destinations: Home(0), People(1), Search(2), More(3)
+    final railIndex = _selectedIndex; // 0=Home,1=People,2=Ask,3=Settings
+
     return NavigationRail(
       extended: isDesktop,
       backgroundColor: RecallrColors.slateSurface,
-      selectedIndex: _selectedIndex,
-      onDestinationSelected: _onDestinationSelected,
+      selectedIndex: railIndex,
+      onDestinationSelected: (i) {
+        // rail: 0=Home,1=People,2=Ask,3=Settings
+        selectTab(i);
+      },
       labelType: isDesktop ? NavigationRailLabelType.none : NavigationRailLabelType.all,
       leading: Padding(
         padding: const EdgeInsets.only(top: RecallrSpacing.md, bottom: RecallrSpacing.lg),
@@ -515,15 +523,43 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                   onPressed: _openQuickCapture,
                 ),
               )
-            : _buildCaptureFab(),
+            : Container(
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [RecallrShadows.glowAi],
+                ),
+                child: FloatingActionButton(
+                  onPressed: _openQuickCapture,
+                  backgroundColor: RecallrColors.aiElectricViolet,
+                  foregroundColor: RecallrColors.textPrimary,
+                  elevation: 0,
+                  shape: const CircleBorder(),
+                  child: const Icon(Icons.add_rounded, size: 28.0),
+                ),
+              ),
       ),
-      destinations: _destinations.map((d) {
-        return NavigationRailDestination(
-          icon: Icon(d.icon),
-          selectedIcon: Icon(d.selectedIcon),
-          label: Text(d.label),
-        );
-      }).toList(),
+      destinations: const [
+        NavigationRailDestination(
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home_rounded),
+          label: Text('Home'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.people_outline_rounded),
+          selectedIcon: Icon(Icons.people_rounded),
+          label: Text('People'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.search_rounded),
+          selectedIcon: Icon(Icons.saved_search_rounded),
+          label: Text('Search'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.grid_view_outlined),
+          selectedIcon: Icon(Icons.grid_view_rounded),
+          label: Text('More'),
+        ),
+      ],
       trailing: Padding(
         padding: const EdgeInsets.only(top: RecallrSpacing.xl, bottom: RecallrSpacing.md),
         child: isDesktop
@@ -601,29 +637,26 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     );
   }
 
-  Widget _buildBottomNavBar({required bool showFab}) {
+  /// Integrated bottom nav bar with 5 positions:
+  /// [Home] [People] [+ circle] [Search] [More]
+  Widget _buildBottomNavBar() {
     return Container(
       decoration: const BoxDecoration(
         border: Border(
           top: BorderSide(color: RecallrColors.borderSubtle, width: 1.0),
         ),
       ),
-      child: BottomAppBar(
-        color: RecallrColors.slateSurface,
-        shape: showFab ? const CircularNotchedRectangle() : null,
-        notchMargin: showFab ? 8.0 : 0.0,
-        elevation: 0,
-        padding: EdgeInsets.zero,
+      child: SafeArea(
+        top: false,
         child: SizedBox(
-          height: 60.0,
+          height: 64.0,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0),
-              _buildNavItem(1),
-              if (showFab) const SizedBox(width: 48.0), // Space for center FAB
-              _buildNavItem(2),
-              _buildNavItem(3),
+              _buildNavItem(navPosition: 0, destIndex: 0),
+              _buildNavItem(navPosition: 1, destIndex: 1),
+              _buildCenterFabItem(),
+              _buildNavItem(navPosition: 3, destIndex: 2),
+              _buildNavItem(navPosition: 4, destIndex: 3),
             ],
           ),
         ),
@@ -631,14 +664,16 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     );
   }
 
-  Widget _buildNavItem(int index) {
-    final dest = _destinations[index];
-    final isSelected = _selectedIndex == index;
+  /// A regular bottom nav item. [navPosition] is the tap index (0,1,3,4).
+  /// [destIndex] is the index into [_destinations] list (0-3).
+  Widget _buildNavItem({required int navPosition, required int destIndex}) {
+    final dest = _destinations[destIndex];
+    final isSelected = _activeNavPosition == navPosition;
     final color = isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textSecondary;
 
     return Expanded(
       child: InkWell(
-        onTap: () => _onDestinationSelected(index),
+        onTap: () => _onNavTapped(navPosition),
         borderRadius: RecallrRadii.radiusMd,
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -652,6 +687,41 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                 color: color,
                 fontSize: 10.0,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The center Quick-Add FAB button integrated into the bottom nav bar.
+  Widget _buildCenterFabItem() {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _onNavTapped(2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48.0,
+              height: 48.0,
+              decoration: BoxDecoration(
+                color: RecallrColors.aiElectricViolet,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: RecallrColors.aiElectricViolet.withValues(alpha: 0.45),
+                    blurRadius: 12.0,
+                    spreadRadius: 2.0,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+                size: 26.0,
               ),
             ),
           ],

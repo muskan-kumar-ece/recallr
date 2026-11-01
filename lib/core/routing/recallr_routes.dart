@@ -20,6 +20,7 @@ class RecallrRoutes {
   static const String file = '/file';
   static const String interaction = '/interaction';
   static const String followUp = '/follow-up';
+  static const String followUps = '/follow-ups';
   static const String network = '/network';
   static const String settings = '/settings';
   static const String subscription = '/subscription';

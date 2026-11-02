@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
-import '../../core/routing/recallr_routes.dart';
-import '../../app/app_shell.dart';
 import '../../core/theme/theme.dart';
 import '../../core/widgets/widgets.dart';
 import '../../features/activity/models/activity_models.dart';
@@ -63,7 +61,8 @@ class HomeScreen extends StatefulWidget {
     this.onRetry,
   });
 
-  final UnifiedRelationshipIntelligenceService? unifiedRelationshipIntelligenceService;
+  final UnifiedRelationshipIntelligenceService?
+      unifiedRelationshipIntelligenceService;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -130,7 +129,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _recentMemories = widget.initialRecentMemories ?? [];
         _relationshipAttentions = widget.initialRelationshipAttentions ??
             (widget.initialRelationshipActions != null
-                ? _convertActionsToAttentions(widget.initialRelationshipActions!)
+                ? _convertActionsToAttentions(
+                    widget.initialRelationshipActions!)
                 : []);
         _isLoading = false;
         _isEmpty = widget.isEmpty;
@@ -138,7 +138,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<RelationshipAttention> _convertActionsToAttentions(List<RelationshipAction> actions) {
+  List<RelationshipAttention> _convertActionsToAttentions(
+      List<RelationshipAction> actions) {
     return actions.map((a) {
       final prio = a.priority == RelationshipActionPriority.urgent
           ? RelationshipAttentionPriority.critical
@@ -190,7 +191,10 @@ class _HomeScreenState extends State<HomeScreen> {
         widget.initialRelationshipActions != null ||
         widget.initialRelationshipAttentions != null;
 
-    if (!hasFixtures && !widget.isEmpty && !widget.isLoading && !widget.isError) {
+    if (!hasFixtures &&
+        !widget.isEmpty &&
+        !widget.isLoading &&
+        !widget.isError) {
       _subscribe();
     }
   }
@@ -202,13 +206,17 @@ class _HomeScreenState extends State<HomeScreen> {
     _snapshotSub?.cancel();
 
     final unifiedService = widget.unifiedRelationshipIntelligenceService ??
-        (mounted ? context.unifiedRelationshipIntelligence : RecallrDependencies.instance.unifiedRelationshipIntelligenceService);
+        (mounted
+            ? context.unifiedRelationshipIntelligence
+            : RecallrDependencies
+                .instance.unifiedRelationshipIntelligenceService);
 
     _snapshotSub = unifiedService.streamSnapshot().listen(
       (snapshot) {
         if (!mounted) return;
         setState(() {
-          _relationshipAttentions = widget.initialRelationshipAttentions ?? snapshot.topAttention;
+          _relationshipAttentions =
+              widget.initialRelationshipAttentions ?? snapshot.topAttention;
           _stats = widget.initialStats ??
               MemoryPulseStats(
                 peopleCount: snapshot.totalPeople,
@@ -280,11 +288,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final peopleCount = people.length;
     final interactionsCount = activities.length;
     final followUpsCount = followUps.length;
-    final companiesCount = people
-        .map((p) => p.company)
-        .where((c) => c.isNotEmpty)
-        .toSet()
-        .length;
+    final companiesCount =
+        people.map((p) => p.company).where((c) => c.isNotEmpty).toSet().length;
 
     final stats = _stats ??
         MemoryPulseStats(
@@ -314,7 +319,9 @@ class _HomeScreenState extends State<HomeScreen> {
               type: MemoryType.interaction,
               title: a.title,
               contextSnippet: a.summary,
-              initials: (a.personName != null && a.personName!.isNotEmpty) ? a.personName![0] : '?',
+              initials: (a.personName != null && a.personName!.isNotEmpty)
+                  ? a.personName![0]
+                  : '?',
               targetRoute: '/activity',
             ))
         .toList();
@@ -335,7 +342,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ))
         .toList();
 
-    final hasData = peopleCount > 0 || interactionsCount > 0 || followUpsCount > 0;
+    final hasData =
+        peopleCount > 0 || interactionsCount > 0 || followUpsCount > 0;
 
     setState(() {
       _stats = widget.initialStats ?? stats;
@@ -348,7 +356,11 @@ class _HomeScreenState extends State<HomeScreen> {
               : _relationshipAttentions);
       _isLoading = false;
       _isError = false;
-      _isEmpty = widget.isEmpty || (!hasData && widget.initialStats == null && widget.initialAttentionItems == null && widget.initialRecentPeople == null);
+      _isEmpty = widget.isEmpty ||
+          (!hasData &&
+              widget.initialStats == null &&
+              widget.initialAttentionItems == null &&
+              widget.initialRecentPeople == null);
     });
   }
 
@@ -370,11 +382,13 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(color: RecallrColors.aiCyanHighlight),
+              const CircularProgressIndicator(
+                  color: RecallrColors.aiCyanHighlight),
               RecallrSpacing.gapMd,
               Text(
                 'Syncing relationship command center...',
-                style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                style: RecallrTypography.bodyMedium
+                    .copyWith(color: RecallrColors.textSecondary),
               ),
             ],
           ),
@@ -387,7 +401,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Padding(
           padding: RecallrSpacing.pagePadding,
           child: RecallrErrorState(
-            message: "We couldn't load your memories. Please check your connection and try again.",
+            message:
+                "We couldn't load your memories. Please check your connection and try again.",
             onRetry: () {
               widget.onRetry?.call();
               _subscribe();
@@ -456,33 +471,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           RecallrSpacing.gapLg,
 
-          // ── 1. Welcome Hero Card (Dark Indigo Carousel) ──────────────────────
-          _WelcomeHeroCard(userName: widget.userName),
-          const SizedBox(height: 24.0),
-
-          // ── 2. Latest Things 2x2 Grid ─────────────────────────────────────────
-          _LatestThingsSection(
-            recentPeopleCount: stats.peopleCount,
-            memoriesCount: recentMemories.length,
-            interactionsCount: stats.interactionsCount,
-            connectionsCount: stats.companiesCount,
-          ),
-          const SizedBox(height: 24.0),
-
-          // ── 3. Stay Connected (Notifications & Follow-ups) ────────────────────
-          _StayConnectedSection(
-            followUpsCount: stats.followUpsCount,
-            attentionCount: attentionItems.length,
-          ),
-          const SizedBox(height: 24.0),
-
-          // ── 4. Search & Quick Capture ────────────────────────────────────────
+          // ── Search & Quick Capture ───────────────────────────────────────────
           const MemorySearchCard(),
           RecallrSpacing.gapMd,
           const QuickCaptureTile(),
           RecallrSpacing.gapLg,
 
-          // ── 5. Intelligent Attention & Momentum If Present ───────────────────
+          // ── Intelligent Attention & Momentum If Present ──────────────────────
           if (relationshipAttentions.isNotEmpty) ...[
             RelationshipAttentionSection(
               attentionItems: relationshipAttentions,
@@ -497,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> {
             RecallrSpacing.gapLg,
           ],
 
-          // ── 6. Key Contacts & Recent Memories ────────────────────────────────
+          // ── Key Contacts & Recent Memories ───────────────────────────────────
           if (recentPeople.isNotEmpty) ...[
             RecentPeopleSection(
               items: recentPeople,
@@ -511,7 +506,7 @@ class _HomeScreenState extends State<HomeScreen> {
             RecallrSpacing.gapLg,
           ],
 
-          // ── 7. Memory Pulse & Quick Access to Network Intelligence ───────────
+          // ── Memory Pulse & Quick Access to Network Intelligence ──────────────
           MemoryPulse(stats: stats),
           RecallrSpacing.gapLg,
           _buildNetworkHealthCard(context),
@@ -598,7 +593,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return GestureDetector(
       onTap: () => Navigator.of(context).pushNamed('/network'),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: RecallrSpacing.md, vertical: RecallrSpacing.sm + 2.0),
+        padding: const EdgeInsets.symmetric(
+            horizontal: RecallrSpacing.md, vertical: RecallrSpacing.sm + 2.0),
         decoration: BoxDecoration(
           color: RecallrColors.slateSurface,
           borderRadius: RecallrRadii.radiusMd,
@@ -646,560 +642,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ─── Welcome Hero Card ────────────────────────────────────────────────────────
-
-class _WelcomeHeroCard extends StatelessWidget {
-  final String userName;
-
-  const _WelcomeHeroCard({required this.userName});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18.0),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1B4B),
-        borderRadius: BorderRadius.circular(20.0),
-        border: Border.all(
-          color: const Color(0xFF312E81),
-          width: 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF1E1B4B).withValues(alpha: 0.4),
-            blurRadius: 16.0,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'YOUR PERSONAL MEMORY',
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-              color: const Color(0xFFA5B4FC).withValues(alpha: 0.9),
-            ),
-          ),
-          const SizedBox(height: 8.0),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Welcome back!',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 22.0,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4.0),
-                    Text(
-                      'Your relationships, always remembered.',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12.5,
-                        color: const Color(0xFFC7D2FE).withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.all(8.0),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF312E81).withValues(alpha: 0.6),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.psychology_rounded,
-                  color: Color(0xFFA5B4FC),
-                  size: 26.0,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16.0),
-          // Inner Focus Highlight Card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14.0),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2E2A68),
-              borderRadius: BorderRadius.circular(14.0),
-              border: Border.all(
-                color: const Color(0xFF4338CA).withValues(alpha: 0.35),
-                width: 1.0,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Remember what matters.',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4.0),
-                Text(
-                  'People, conversations and important moments — all in one place.',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12.0,
-                    height: 1.35,
-                    color: const Color(0xFFC7D2FE).withValues(alpha: 0.8),
-                  ),
-                ),
-                const SizedBox(height: 12.0),
-                Row(
-                  children: [
-                    // Carousel dots (5 indicators)
-                    Container(
-                      width: 7.0,
-                      height: 7.0,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4.0),
-                    Container(
-                      width: 5.0,
-                      height: 5.0,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4.0),
-                    Container(
-                      width: 5.0,
-                      height: 5.0,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4.0),
-                    Container(
-                      width: 5.0,
-                      height: 5.0,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 4.0),
-                    Container(
-                      width: 5.0,
-                      height: 5.0,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.35),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const Spacer(),
-                    const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white70,
-                      size: 16.0,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Latest Things Section ───────────────────────────────────────────────────
-
-class _LatestThingsSection extends StatelessWidget {
-  final int recentPeopleCount;
-  final int memoriesCount;
-  final int interactionsCount;
-  final int connectionsCount;
-
-  const _LatestThingsSection({
-    required this.recentPeopleCount,
-    required this.memoriesCount,
-    required this.interactionsCount,
-    required this.connectionsCount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Expanded(
-              child: Text(
-                'Latest things',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.w700,
-                  color: RecallrColors.textPrimary,
-                ),
-              ),
-            ),
-            InkWell(
-              onTap: () => Navigator.of(context).pushNamed(RecallrRoutes.activity),
-              borderRadius: BorderRadius.circular(6.0),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'This week',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: RecallrColors.aiElectricViolet,
-                      ),
-                    ),
-                    SizedBox(width: 2.0),
-                    Icon(
-                      Icons.north_east_rounded,
-                      size: 13.0,
-                      color: RecallrColors.aiElectricViolet,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12.0),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10.0,
-          crossAxisSpacing: 10.0,
-          childAspectRatio: 1.45,
-          children: [
-            // 1. People
-            _CategoryPreviewCard(
-              title: 'People',
-              subtitle: 'Recent connections',
-              icon: Icons.people_outline_rounded,
-              iconColor: const Color(0xFF8B5CF6),
-              bgColor: const Color(0xFF1E1E3F),
-              borderColor: const Color(0xFF332F63),
-              onTap: () => RecallrAppShellScope.openTab(context, 1),
-            ),
-            // 2. Memories
-            _CategoryPreviewCard(
-              title: 'Memories',
-              subtitle: 'Things worth remembering',
-              icon: Icons.auto_awesome_rounded,
-              iconColor: RecallrColors.emeraldVerified,
-              bgColor: const Color(0xFF0F2520),
-              borderColor: const Color(0xFF1B4E41),
-              onTap: () => RecallrAppShellScope.openTab(context, 2),
-            ),
-            // 3. Activity
-            _CategoryPreviewCard(
-              title: 'Activity',
-              subtitle: 'Recent interactions',
-              icon: Icons.calendar_today_outlined,
-              iconColor: RecallrColors.warmAmberGold,
-              bgColor: const Color(0xFF2A1F0A),
-              borderColor: const Color(0xFF523E16),
-              onTap: () => Navigator.of(context).pushNamed(RecallrRoutes.activity),
-            ),
-            // 4. Connections
-            _CategoryPreviewCard(
-              title: 'Connections',
-              subtitle: 'Your growing network',
-              icon: Icons.hub_outlined,
-              iconColor: const Color(0xFFE879A0),
-              bgColor: const Color(0xFF2A0F1A),
-              borderColor: const Color(0xFF521E34),
-              onTap: () => Navigator.of(context).pushNamed('/network'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _CategoryPreviewCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final Color iconColor;
-  final Color bgColor;
-  final Color borderColor;
-  final VoidCallback onTap;
-
-  const _CategoryPreviewCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.iconColor,
-    required this.bgColor,
-    required this.borderColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14.0),
-      child: Container(
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(14.0),
-          border: Border.all(color: borderColor, width: 1.0),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(icon, color: iconColor, size: 22.0),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                    color: RecallrColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2.0),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 11.0,
-                    color: RecallrColors.textSecondary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Stay Connected Section ──────────────────────────────────────────────────
-
-class _StayConnectedSection extends StatelessWidget {
-  final int followUpsCount;
-  final int attentionCount;
-
-  const _StayConnectedSection({
-    required this.followUpsCount,
-    required this.attentionCount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Stay connected',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 18.0,
-            fontWeight: FontWeight.w700,
-            color: RecallrColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 12.0),
-        Row(
-          children: [
-            // Notifications Card
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(14.0),
-                decoration: BoxDecoration(
-                  color: RecallrColors.charcoalCard,
-                  borderRadius: BorderRadius.circular(14.0),
-                  border: Border.all(color: RecallrColors.borderSubtle, width: 1.0),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7.0),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2A2050),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: const Icon(
-                        Icons.notifications_none_rounded,
-                        color: RecallrColors.aiElectricViolet,
-                        size: 20.0,
-                      ),
-                    ),
-                    const SizedBox(height: 10.0),
-                    const Text(
-                      'Notifications',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.w700,
-                        color: RecallrColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4.0),
-                    const Text(
-                      'Important updates and reminders.',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 11.5,
-                        color: RecallrColors.textSecondary,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12.0),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pushNamed(RecallrRoutes.activity),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF4338CA), width: 1.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        ),
-                        child: const Text(
-                          'View alerts',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12.0,
-                            fontWeight: FontWeight.w600,
-                            color: RecallrColors.aiElectricViolet,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 10.0),
-            // Follow-ups Card
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(14.0),
-                decoration: BoxDecoration(
-                  color: RecallrColors.charcoalCard,
-                  borderRadius: BorderRadius.circular(14.0),
-                  border: Border.all(color: RecallrColors.borderSubtle, width: 1.0),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7.0),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0D3327),
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                      child: const Icon(
-                        Icons.event_available_outlined,
-                        color: RecallrColors.emeraldVerified,
-                        size: 20.0,
-                      ),
-                    ),
-                    const SizedBox(height: 10.0),
-                    const Text(
-                      'Follow-ups',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.w700,
-                        color: RecallrColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4.0),
-                    const Text(
-                      'Keep promises and reconnect.',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 11.5,
-                        color: RecallrColors.textSecondary,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12.0),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pushNamed(RecallrRoutes.followUps),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF0F5132), width: 1.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        ),
-                        child: const Text(
-                          'View follow-ups',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12.0,
-                            fontWeight: FontWeight.w600,
-                            color: RecallrColors.emeraldVerified,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

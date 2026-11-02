@@ -185,7 +185,8 @@ class AiAnswerRequest {
   Map<String, dynamic> toMap() {
     return {
       'query': query,
-      'conversationHistory': conversationHistory?.map((h) => h.toMap()).toList(),
+      'conversationHistory':
+          conversationHistory?.map((h) => h.toMap()).toList(),
       'targetPersonId': targetPersonId,
       'maxEvidence': maxEvidence,
       'answerStyle': answerStyle,
@@ -237,6 +238,7 @@ class AiAnswer {
   final String? errorMessage;
   final AiErrorType errorType;
   final bool wasTruncated;
+  final int? remainingCredits;
 
   const AiAnswer({
     required this.answer,
@@ -252,6 +254,7 @@ class AiAnswer {
     this.errorMessage,
     this.errorType = AiErrorType.none,
     this.wasTruncated = false,
+    this.remainingCredits,
   });
 
   bool get isSuccessful => status == AiAnswerStatus.completed;
@@ -273,6 +276,7 @@ class AiAnswer {
       'errorMessage': errorMessage,
       'errorType': errorType.name,
       'wasTruncated': wasTruncated,
+      'remainingCredits': remainingCredits,
     };
   }
 
@@ -308,8 +312,14 @@ class AiAnswer {
           .whereType<Map>()
           .map((p) => PersonReference.fromMap(Map<String, dynamic>.from(p)))
           .toList(),
-      mentionedCompanies: (map['mentionedCompanies'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      suggestedActions: (map['suggestedActions'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      mentionedCompanies: (map['mentionedCompanies'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
+      suggestedActions: (map['suggestedActions'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       generatedAt: parseDate(map['generatedAt']),
       errorMessage: map['errorMessage']?.toString(),
       errorType: AiErrorType.values.firstWhere(
@@ -317,6 +327,7 @@ class AiAnswer {
         orElse: () => AiErrorType.none,
       ),
       wasTruncated: map['wasTruncated'] == true,
+      remainingCredits: (map['remainingCredits'] as num?)?.toInt(),
     );
   }
 
@@ -333,6 +344,7 @@ class AiAnswer {
     DateTime? generatedAt,
     String? errorMessage,
     bool? wasTruncated,
+    int? remainingCredits,
   }) {
     return AiAnswer(
       answer: answer ?? this.answer,
@@ -347,6 +359,7 @@ class AiAnswer {
       generatedAt: generatedAt ?? this.generatedAt,
       errorMessage: errorMessage ?? this.errorMessage,
       wasTruncated: wasTruncated ?? this.wasTruncated,
+      remainingCredits: remainingCredits ?? this.remainingCredits,
     );
   }
 }

@@ -14,6 +14,8 @@ enum RelationshipContextType {
 
 /// Rich relationship-aware person model for Recallr People directory.
 class PersonItem {
+  final List<String> categoryIds;
+  final String? sourceCardId;
   final String id;
   final String name;
   final String role;
@@ -37,6 +39,8 @@ class PersonItem {
   final DateTime? updatedAt;
 
   const PersonItem({
+    this.categoryIds = const [],
+    this.sourceCardId,
     required this.id,
     required this.name,
     required this.role,
@@ -67,13 +71,17 @@ class PersonItem {
     if (trimmed.isEmpty) return '??';
     final parts = trimmed.split(RegExp(r'\s+'));
     if (parts.length == 1) {
-      return parts.first.substring(0, parts.first.length.clamp(1, 2)).toUpperCase();
+      return parts.first
+          .substring(0, parts.first.length.clamp(1, 2))
+          .toUpperCase();
     }
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
 
   Map<String, dynamic> toMap() {
     return {
+      'categoryIds': categoryIds,
+      if (sourceCardId != null) 'sourceCardId': sourceCardId,
       'id': id,
       'name': name,
       'role': role,
@@ -83,7 +91,9 @@ class PersonItem {
       'locationOrEvent': locationOrEvent,
       'contextSnippet': contextSnippet,
       'lastInteraction': lastInteraction,
-      'lastInteractionDate': lastInteractionDate != null ? Timestamp.fromDate(lastInteractionDate!) : null,
+      'lastInteractionDate': lastInteractionDate != null
+          ? Timestamp.fromDate(lastInteractionDate!)
+          : null,
       'initials': initials.isNotEmpty ? initials : computeInitials(name),
       'capabilities': capabilities,
       'brands': brands,
@@ -109,19 +119,25 @@ class PersonItem {
     final rawInitials = map['initials']?.toString() ?? '';
 
     return PersonItem(
+      categoryIds: List<String>.from(map['categoryIds'] as List? ?? []),
+      sourceCardId: map['sourceCardId'] as String?,
       id: docId ?? map['id']?.toString() ?? '',
       name: nameStr,
       role: map['role']?.toString() ?? '',
       company: map['company']?.toString() ?? '',
       email: map['email']?.toString(),
       phone: map['phone']?.toString(),
-      locationOrEvent: map['locationOrEvent']?.toString() ?? map['location']?.toString(),
+      locationOrEvent:
+          map['locationOrEvent']?.toString() ?? map['location']?.toString(),
       contextSnippet: map['contextSnippet']?.toString(),
       lastInteraction: map['lastInteraction']?.toString(),
       lastInteractionDate: parseDate(map['lastInteractionDate']),
       initials: rawInitials.isNotEmpty ? rawInitials : computeInitials(nameStr),
-      capabilities: (map['capabilities'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      capabilities:
+          (map['capabilities'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
+      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
       pendingFollowUp: map['pendingFollowUp']?.toString(),
       hasPendingFollowUp: map['hasPendingFollowUp'] == true,
       interactionCount: (map['interactionCount'] as num?)?.toInt() ?? 1,
@@ -144,6 +160,7 @@ class PersonItem {
   }
 
   PersonItem copyWith({
+    List<String>? categoryIds,
     String? id,
     String? name,
     String? role,
@@ -167,6 +184,8 @@ class PersonItem {
     DateTime? updatedAt,
   }) {
     return PersonItem(
+      categoryIds: categoryIds ?? this.categoryIds,
+      sourceCardId: sourceCardId,
       id: id ?? this.id,
       name: name ?? this.name,
       role: role ?? this.role,
@@ -209,7 +228,8 @@ extension PeopleFilterOptionExt on PeopleFilterOption {
         return true;
       case PeopleFilterOption.recentlyInteracted:
         if (person.lastInteractionDate == null) return false;
-        return DateTime.now().difference(person.lastInteractionDate!).inDays <= 7;
+        return DateTime.now().difference(person.lastInteractionDate!).inDays <=
+            7;
       case PeopleFilterOption.followUpDue:
         return person.hasPendingFollowUp;
       case PeopleFilterOption.aiMl:
@@ -231,6 +251,7 @@ extension PeopleFilterOptionExt on PeopleFilterOption {
             c.toLowerCase().contains('risc-v'));
     }
   }
+
   String get label {
     switch (this) {
       case PeopleFilterOption.all:

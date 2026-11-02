@@ -14,9 +14,12 @@ Widget _createTestWidget(Widget child) {
   return MaterialApp(
     theme: RecallrTheme.darkTheme,
     routes: {
-      '/person/per_301': (context) => const Scaffold(body: Text('Person Details per_301')),
-      '/person/per_302': (context) => const Scaffold(body: Text('Person Details per_302')),
-      '/person/per_303': (context) => const Scaffold(body: Text('Person Details per_303')),
+      '/person/per_301': (context) =>
+          const Scaffold(body: Text('Person Details per_301')),
+      '/person/per_302': (context) =>
+          const Scaffold(body: Text('Person Details per_302')),
+      '/person/per_303': (context) =>
+          const Scaffold(body: Text('Person Details per_303')),
     },
     home: Scaffold(body: child),
   );
@@ -24,7 +27,8 @@ Widget _createTestWidget(Widget child) {
 
 void main() {
   group('PeopleScreen Phase 06 Tests', () {
-    testWidgets('renders populated directory correctly on mobile', (tester) async {
+    testWidgets('renders populated directory correctly on mobile',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -39,7 +43,10 @@ void main() {
 
       // 2. Search Field
       expect(find.byType(PeopleSearch), findsOneWidget);
-      expect(find.text('Search people you remember (skills, companies, events)...'), findsOneWidget);
+      expect(
+          find.text(
+              'Search people you remember (skills, companies, events)...'),
+          findsOneWidget);
 
       // 3. Filters
       expect(find.byType(PeopleFilters), findsOneWidget);
@@ -106,7 +113,23 @@ void main() {
       expect(find.text('Vivek Raghavan'), findsNothing);
     });
 
-    testWidgets('renders search-empty state when query matches no one', (tester) async {
+    testWidgets('does not show heuristic relationship category cards',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(_createTestWidget(const PeopleScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Friends'), findsNothing);
+      expect(find.text('Work'), findsNothing);
+      expect(find.text('College'), findsNothing);
+      expect(find.text('Family'), findsNothing);
+    });
+
+    testWidgets('renders search-empty state when query matches no one',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -127,12 +150,16 @@ void main() {
       expect(find.text('Priya Sharma'), findsWidgets);
     });
 
-    testWidgets('renders empty onboarding state with Capture CTA when isEmpty is true', (tester) async {
-      await tester.pumpWidget(_createTestWidget(const PeopleScreen(isEmpty: true)));
+    testWidgets(
+        'renders empty onboarding state with Capture CTA when isEmpty is true',
+        (tester) async {
+      await tester
+          .pumpWidget(_createTestWidget(const PeopleScreen(isEmpty: true)));
       await tester.pumpAndSettle();
 
       expect(find.byType(PeopleEmptyState), findsOneWidget);
-      expect(find.text('Your professional memory starts here.'), findsOneWidget);
+      expect(
+          find.text('Your professional memory starts here.'), findsOneWidget);
       expect(find.text('Capture First Person'), findsOneWidget);
 
       // Tap Capture CTA
@@ -142,8 +169,10 @@ void main() {
       expect(find.byType(CaptureModal), findsOneWidget);
     });
 
-    testWidgets('renders loading skeleton when isLoading is true', (tester) async {
-      await tester.pumpWidget(_createTestWidget(const PeopleScreen(isLoading: true)));
+    testWidgets('renders loading skeleton when isLoading is true',
+        (tester) async {
+      await tester
+          .pumpWidget(_createTestWidget(const PeopleScreen(isLoading: true)));
       await tester.pump();
 
       expect(find.byType(PeopleHeader), findsNothing);
@@ -158,16 +187,18 @@ void main() {
       )));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining("We couldn't load your people directory"), findsOneWidget);
+      expect(find.textContaining("We couldn't load your people directory"),
+          findsOneWidget);
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
 
       expect(retried, isTrue);
     });
 
-    testWidgets('renders 2-column layout on desktop viewports without overflow', (tester) async {
+    testWidgets('renders 2-column layout on desktop viewports without overflow',
+        (tester) async {
       final viewports = [
-        const Size(360, 640),  // Compact mobile
+        const Size(360, 640), // Compact mobile
         const Size(768, 1024), // Tablet
         const Size(1440, 900), // Desktop wide
       ];

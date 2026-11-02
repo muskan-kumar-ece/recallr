@@ -4,12 +4,14 @@ class GeminiGenerationResult {
   final String? finishReason;
   final int? promptTokens;
   final int? candidateTokens;
+  final int? remainingCredits;
 
   const GeminiGenerationResult({
     required this.text,
     this.finishReason,
     this.promptTokens,
     this.candidateTokens,
+    this.remainingCredits,
   });
 
   Map<String, dynamic> toMap() {
@@ -18,6 +20,7 @@ class GeminiGenerationResult {
       'finishReason': finishReason,
       'promptTokens': promptTokens,
       'candidateTokens': candidateTokens,
+      'remainingCredits': remainingCredits,
     };
   }
 }

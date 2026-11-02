@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../theme/recallr_colors.dart';
 import '../../theme/recallr_radii.dart';
+import '../../theme/recallr_theme.dart';
 
 /// Reusable Recallr Icon Button ensuring minimum 48x48dp touch target and semantic labels.
 class RecallrIconButton extends StatelessWidget {
@@ -24,6 +24,7 @@ class RecallrIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isDisabled = onPressed == null;
+    final colors = context.colors;
 
     final Widget button = ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 48.0, minHeight: 48.0),
@@ -36,7 +37,7 @@ class RecallrIconButton extends StatelessWidget {
             width: 48.0,
             height: 48.0,
             decoration: BoxDecoration(
-              color: isActive ? RecallrColors.charcoalCard : Colors.transparent,
+               color: isActive ? colors.charcoalCard : Colors.transparent,
               borderRadius: RecallrRadii.radiusMd,
             ),
             alignment: Alignment.center,
@@ -44,8 +45,8 @@ class RecallrIconButton extends StatelessWidget {
               icon,
               size: iconSize,
               color: isDisabled
-                  ? RecallrColors.textTertiary
-                  : (color ?? (isActive ? RecallrColors.aiCyanHighlight : RecallrColors.textPrimary)),
+                   ? colors.textTertiary
+                   : (color ?? (isActive ? colors.aiCyanHighlight : colors.textPrimary)),
             ),
           ),
         ),

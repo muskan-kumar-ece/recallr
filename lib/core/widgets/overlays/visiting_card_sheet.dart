@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/theme.dart';
 import '../buttons/recallr_button.dart';
 
@@ -43,6 +44,13 @@ class VisitingCardSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardText = [
+      name.isNotEmpty ? name : 'Professional',
+      if (title != null && title!.isNotEmpty) title!,
+      if (company != null && company!.isNotEmpty) company!,
+      email,
+    ].join('\n');
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -121,7 +129,7 @@ class VisitingCardSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 4.0),
                   Text(
-                    title ?? 'Software Architect · AI SaaS Innovator',
+                    title?.isNotEmpty == true ? title! : 'Add your role',
                     style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.aiCyanHighlight),
                   ),
                   const SizedBox(height: 16.0),
@@ -146,34 +154,23 @@ class VisitingCardSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20.0),
-            Row(
-              children: [
-                Expanded(
-                  child: RecallrButton(
-                    label: 'Share Card',
-                    variant: RecallrButtonVariant.primary,
-                    leadingIcon: Icons.share_rounded,
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Card link generated and copied!'),
-                          backgroundColor: RecallrColors.slateSurface,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12.0),
-                Expanded(
-                  child: RecallrButton(
-                    label: 'Edit Details',
-                    variant: RecallrButtonVariant.secondary,
-                    leadingIcon: Icons.edit_outlined,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ),
-              ],
+            SizedBox(
+              width: double.infinity,
+              child: RecallrButton(
+                label: 'Copy Card Details',
+                variant: RecallrButtonVariant.primary,
+                leadingIcon: Icons.copy_rounded,
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: cardText));
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Card details copied to clipboard'),
+                      backgroundColor: RecallrColors.slateSurface,
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),

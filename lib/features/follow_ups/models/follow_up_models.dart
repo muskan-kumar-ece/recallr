@@ -135,7 +135,8 @@ enum FollowUpFilter {
       case FollowUpFilter.waiting:
         return item.status == FollowUpStatus.waiting;
       case FollowUpFilter.overdue:
-        return item.status == FollowUpStatus.overdue || item.commitmentType == CommitmentType.overdue;
+        return item.status == FollowUpStatus.overdue ||
+            item.commitmentType == CommitmentType.overdue;
       case FollowUpFilter.completed:
         return item.isCompleted || item.status == FollowUpStatus.completed;
     }
@@ -160,19 +161,30 @@ class FollowUpSummaryStats {
 
   factory FollowUpSummaryStats.fromItems(List<FollowUpItem> items) {
     return FollowUpSummaryStats(
-      todayCount: items.where((f) => f.status == FollowUpStatus.dueToday && !f.isCompleted).length,
-      upcomingCount: items.where((f) => f.status == FollowUpStatus.upcoming && !f.isCompleted).length,
-      waitingCount: items.where((f) => f.status == FollowUpStatus.waiting && !f.isCompleted).length,
-      overdueCount: items.where((f) => f.status == FollowUpStatus.overdue && !f.isCompleted).length,
+      todayCount: items
+          .where((f) => f.status == FollowUpStatus.dueToday && !f.isCompleted)
+          .length,
+      upcomingCount: items
+          .where((f) => f.status == FollowUpStatus.upcoming && !f.isCompleted)
+          .length,
+      waitingCount: items
+          .where((f) => f.status == FollowUpStatus.waiting && !f.isCompleted)
+          .length,
+      overdueCount: items
+          .where((f) => f.status == FollowUpStatus.overdue && !f.isCompleted)
+          .length,
       completedCount: items.where((f) => f.isCompleted).length,
     );
   }
 
-  int get totalActive => todayCount + upcomingCount + waitingCount + overdueCount;
+  int get totalActive =>
+      todayCount + upcomingCount + waitingCount + overdueCount;
 }
 
 /// Domain model representing a single memory-backed relationship commitment.
 class FollowUpItem {
+  final List<String> categoryIds;
+  final DateTime? dueAt;
   final String id;
   final String title;
   final String context;
@@ -200,6 +212,8 @@ class FollowUpItem {
   final DateTime? updatedAt;
 
   const FollowUpItem({
+    this.categoryIds = const [],
+    this.dueAt,
     required this.id,
     required this.title,
     this.context = '',
@@ -233,6 +247,8 @@ class FollowUpItem {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'categoryIds': categoryIds,
+      'dueAt': dueAt == null ? null : Timestamp.fromDate(dueAt!),
       'title': title,
       'context': context,
       'commitmentType': commitmentType.name,
@@ -274,6 +290,8 @@ class FollowUpItem {
     }
 
     return FollowUpItem(
+      categoryIds: List<String>.from(map['categoryIds'] as List? ?? []),
+      dueAt: parseDate(map['dueAt']),
       id: docId ?? map['id']?.toString() ?? '',
       title: map['title']?.toString() ?? '',
       context: map['context']?.toString() ?? '',
@@ -304,7 +322,9 @@ class FollowUpItem {
       targetRoute: map['targetRoute']?.toString() ?? '/follow-ups',
       isCompleted: map['isCompleted'] == true,
       completedAt: parseCompletedAt(map['completedAt']),
-      metadata: map['metadata'] is Map ? Map<String, dynamic>.from(map['metadata'] as Map) : null,
+      metadata: map['metadata'] is Map
+          ? Map<String, dynamic>.from(map['metadata'] as Map)
+          : null,
       userId: map['userId']?.toString(),
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
@@ -317,6 +337,8 @@ class FollowUpItem {
   }
 
   FollowUpItem copyWith({
+    List<String>? categoryIds,
+    DateTime? dueAt,
     String? id,
     String? title,
     String? context,
@@ -345,6 +367,8 @@ class FollowUpItem {
     DateTime? updatedAt,
   }) {
     return FollowUpItem(
+      categoryIds: categoryIds ?? this.categoryIds,
+      dueAt: dueAt ?? this.dueAt,
       id: id ?? this.id,
       title: title ?? this.title,
       context: context ?? this.context,

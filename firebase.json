@@ -65,6 +65,10 @@
     ],
     "rewrites": [
       {
+        "source": "/card/**",
+        "function": {"functionId": "publicVisitingCard", "region": "us-central1"}
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

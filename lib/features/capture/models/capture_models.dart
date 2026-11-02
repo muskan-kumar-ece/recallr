@@ -152,9 +152,14 @@ class CaptureReviewData {
       address: map['address']?.toString() ?? map['location']?.toString(),
       date: map['date']?.toString(),
       audioDuration: map['audioDuration']?.toString(),
-      bulletPoints: (map['bulletPoints'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      contactDetails: (map['contactDetails'] as Map?)?.map((k, v) => MapEntry(k.toString(), v.toString())) ?? const {},
-      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      bulletPoints:
+          (map['bulletPoints'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
+      contactDetails: (map['contactDetails'] as Map?)
+              ?.map((k, v) => MapEntry(k.toString(), v.toString())) ??
+          const {},
+      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
       nameConfidence: (map['nameConfidence'] as num?)?.toDouble(),
       needsNameConfirmation: map['needsNameConfirmation'] == true,
     );
@@ -192,13 +197,15 @@ class CaptureReviewData {
       contactDetails: contactDetails ?? this.contactDetails,
       brands: brands ?? this.brands,
       nameConfidence: nameConfidence ?? this.nameConfidence,
-      needsNameConfirmation: needsNameConfirmation ?? this.needsNameConfirmation,
+      needsNameConfirmation:
+          needsNameConfirmation ?? this.needsNameConfirmation,
     );
   }
 }
 
 /// Domain model representing a single captured memory item.
 class CaptureItem {
+  final List<String> categoryIds;
   final String id;
   final CaptureType type;
   final String title;
@@ -241,6 +248,7 @@ class CaptureItem {
   final String? localFilePath;
 
   const CaptureItem({
+    this.categoryIds = const [],
     required this.id,
     required this.type,
     required this.title,
@@ -282,6 +290,7 @@ class CaptureItem {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'categoryIds': categoryIds,
       'type': type.name,
       'title': title,
       'description': description,
@@ -305,7 +314,8 @@ class CaptureItem {
       'fileSize': fileSize,
       'durationSeconds': durationSeconds,
       'processingStatus': processingStatus?.name,
-      'processedAt': processedAt != null ? Timestamp.fromDate(processedAt!) : null,
+      'processedAt':
+          processedAt != null ? Timestamp.fromDate(processedAt!) : null,
       'processingError': processingError,
       'extractedText': extractedText,
       'summary': summary,
@@ -313,7 +323,9 @@ class CaptureItem {
       'resolvedPersonId': resolvedPersonId,
       'entityResolutionStatus': entityResolutionStatus,
       'entityResolutionConfidence': entityResolutionConfidence,
-      'entityResolutionAt': entityResolutionAt != null ? Timestamp.fromDate(entityResolutionAt!) : null,
+      'entityResolutionAt': entityResolutionAt != null
+          ? Timestamp.fromDate(entityResolutionAt!)
+          : null,
       'entityResolutionSource': entityResolutionSource,
       'linkedActivityId': linkedActivityId,
     };
@@ -334,6 +346,7 @@ class CaptureItem {
     }
 
     return CaptureItem(
+      categoryIds: List<String>.from(map['categoryIds'] as List? ?? []),
       id: docId ?? map['id']?.toString() ?? '',
       type: CaptureType.values.firstWhere(
         (e) => e.name == map['type'],
@@ -351,16 +364,25 @@ class CaptureItem {
       location: map['location']?.toString(),
       targetRoute: map['targetRoute']?.toString() ?? '/captures/unknown',
       isVerified: map['isVerified'] != false,
-      metadata: map['metadata'] is Map ? Map<String, dynamic>.from(map['metadata'] as Map) : null,
+      metadata: map['metadata'] is Map
+          ? Map<String, dynamic>.from(map['metadata'] as Map)
+          : null,
       userId: map['userId']?.toString(),
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
       mediaUrl: map['mediaUrl']?.toString(),
       storagePath: map['storagePath']?.toString(),
       mimeType: map['mimeType']?.toString(),
-      fileSize: map['fileSize'] is num ? (map['fileSize'] as num).toInt() : int.tryParse(map['fileSize']?.toString() ?? ''),
-      durationSeconds: map['durationSeconds'] is num ? (map['durationSeconds'] as num).toInt() : int.tryParse(map['durationSeconds']?.toString() ?? ''),
-      processingStatus: map['processingStatus'] != null ? CaptureProcessingStatus.fromString(map['processingStatus']?.toString()) : null,
+      fileSize: map['fileSize'] is num
+          ? (map['fileSize'] as num).toInt()
+          : int.tryParse(map['fileSize']?.toString() ?? ''),
+      durationSeconds: map['durationSeconds'] is num
+          ? (map['durationSeconds'] as num).toInt()
+          : int.tryParse(map['durationSeconds']?.toString() ?? ''),
+      processingStatus: map['processingStatus'] != null
+          ? CaptureProcessingStatus.fromString(
+              map['processingStatus']?.toString())
+          : null,
       processedAt: parseDate(map['processedAt']),
       processingError: map['processingError']?.toString(),
       extractedText: map['extractedText']?.toString(),
@@ -368,7 +390,8 @@ class CaptureItem {
       confidence: parseDouble(map['confidence']),
       resolvedPersonId: map['resolvedPersonId']?.toString(),
       entityResolutionStatus: map['entityResolutionStatus']?.toString(),
-      entityResolutionConfidence: parseDouble(map['entityResolutionConfidence']),
+      entityResolutionConfidence:
+          parseDouble(map['entityResolutionConfidence']),
       entityResolutionAt: parseDate(map['entityResolutionAt']),
       entityResolutionSource: map['entityResolutionSource']?.toString(),
       linkedActivityId: map['linkedActivityId']?.toString(),
@@ -381,6 +404,7 @@ class CaptureItem {
   }
 
   CaptureItem copyWith({
+    List<String>? categoryIds,
     String? id,
     CaptureType? type,
     String? title,
@@ -419,6 +443,7 @@ class CaptureItem {
     String? localFilePath,
   }) {
     return CaptureItem(
+      categoryIds: categoryIds ?? this.categoryIds,
       id: id ?? this.id,
       type: type ?? this.type,
       title: title ?? this.title,
@@ -449,10 +474,13 @@ class CaptureItem {
       summary: summary ?? this.summary,
       confidence: confidence ?? this.confidence,
       resolvedPersonId: resolvedPersonId ?? this.resolvedPersonId,
-      entityResolutionStatus: entityResolutionStatus ?? this.entityResolutionStatus,
-      entityResolutionConfidence: entityResolutionConfidence ?? this.entityResolutionConfidence,
+      entityResolutionStatus:
+          entityResolutionStatus ?? this.entityResolutionStatus,
+      entityResolutionConfidence:
+          entityResolutionConfidence ?? this.entityResolutionConfidence,
       entityResolutionAt: entityResolutionAt ?? this.entityResolutionAt,
-      entityResolutionSource: entityResolutionSource ?? this.entityResolutionSource,
+      entityResolutionSource:
+          entityResolutionSource ?? this.entityResolutionSource,
       linkedActivityId: linkedActivityId ?? this.linkedActivityId,
       localFilePath: localFilePath ?? this.localFilePath,
     );

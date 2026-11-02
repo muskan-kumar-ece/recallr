@@ -13,8 +13,8 @@
 
   <p>
     <a href="https://recallr-b0bcc.web.app"><img src="https://img.shields.io/badge/Live_Demo-recallr--b0bcc.web.app-7C3AED?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Live Demo"/></a>
-    <a href="https://github.com/muskan-kumar-ece/recallr/releases/tag/v1.4.0"><img src="https://img.shields.io/badge/Release-v1.4.0-059669?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.4.0"/></a>
-    <a href="#test-suite--quality-scorecard"><img src="https://img.shields.io/badge/Tests-1%2C248%20Passed-blue?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Automated Tests"/></a>
+    <a href="https://github.com/muskan-kumar-ece/recallr/releases/tag/v1.5.0"><img src="https://img.shields.io/badge/Release-v1.5.0-059669?style=for-the-badge&logo=github&logoColor=white" alt="Release v1.5.0"/></a>
+    <a href="#test-suite--quality-scorecard"><img src="https://img.shields.io/badge/Tests-1%2C252%20Passed-blue?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Automated Tests"/></a>
     <a href="#zero-trust-security--multi-tenant-isolation"><img src="https://img.shields.io/badge/App_Check-Enforced-EA4335?style=for-the-badge&logo=firebase&logoColor=white" alt="Firebase App Check"/></a>
   </p>
 
@@ -52,16 +52,27 @@ Human relationships are non-linear, high-context, and cognitively demanding. Mod
 
 ## Downloads & Platform Binaries
 
-Production release **`v1.4.0`** is packaged for multi-architecture Android, Web, and iOS environments.
+Production release **`v1.5.0`** is compiled for multi-architecture Android, Web, and iOS environments with zero-trust validation and optimized distribution footprints.
 
-| Platform / Binary | Architecture | Package Size | Target Hardware | Direct Download |
-| :--- | :--- | :--- | :--- | :--- |
-| **`app-arm64-v8a-release.apk`** <br/>*(Recommended)* | ARM 64-bit | ~34.8 MB | Modern Android smartphones (Pixel, Samsung Galaxy, OnePlus, Xiaomi) | [Download ARM64 APK](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.4.0/app-arm64-v8a-release.apk) |
-| **`app-release.apk`** | Universal | ~88.8 MB | All Android CPU architectures bundled into a single package | [Download Universal APK](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.4.0/app-release.apk) |
-| **`app-armeabi-v7a-release.apk`** | ARM 32-bit | ~28.5 MB | Legacy Android devices & budget hardware | [Download ARM32 APK](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.4.0/app-armeabi-v7a-release.apk) |
-| **`app-x86_64-release.apk`** | x86 64-bit | ~36.8 MB | Desktop emulators, ChromeOS, Intel/AMD Android devices | [Download x86_64 APK](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.4.0/app-x86_64-release.apk) |
-| **`recallr-web-release.zip`** | Static HTML5 / CanvasKit | ~13.6 MB | Self-hosted static hosting (Cloudflare Pages, S3, Netlify, Nginx) | [Download Web Bundle](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.4.0/recallr-web-release.zip) |
-| **Hosted Cloud Instance** | PWA / Responsive | Cloud | All modern desktop & mobile web browsers | [Launch Live Web App](https://recallr-b0bcc.web.app) |
+### Android Release APKs
+| File | Size | Architecture | Description |
+| :--- | :--- | :--- | :--- |
+| [**app-arm64-v8a-release.apk**](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.5.0/app-arm64-v8a-release.apk) *(Recommended)* | ~33.8 MB | ARM 64-bit | Optimized for modern smartphones (Samsung, Google Pixel, OnePlus, Xiaomi, etc.) |
+| [**app-release.apk**](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.5.0/app-release.apk) | ~86.9 MB | Universal | Works on all Android devices (contains all CPU architectures) |
+| [**app-armeabi-v7a-release.apk**](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.5.0/app-armeabi-v7a-release.apk) | ~27.4 MB | ARM 32-bit | For older Android devices |
+| [**app-x86_64-release.apk**](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.5.0/app-x86_64-release.apk) | ~36.8 MB | x86 64-bit | For Android Emulators & ChromeOS |
+
+### 🌐 Web Release (Hosted & Standalone)
+| File | Size | Architecture | Description |
+| :--- | :--- | :--- | :--- |
+| [**recallr-web-release.zip**](https://github.com/muskan-kumar-ece/recallr/releases/download/v1.5.0/recallr-web-release.zip) | ~14.3 MB | Web Static Bundle | Pre-compiled static HTML5 / CanvasKit release bundle for self-hosting (Nginx, S3, Cloudflare) |
+| [**Live Web App**](https://recallr-b0bcc.web.app) | Cloud PWA | Universal Web | Production instance with App Check, Razorpay UPI/Card checkout, and real-time synchronization |
+
+### 🍏 iOS Deployment
+| File / Target | Size | Architecture | Description |
+| :--- | :--- | :--- | :--- |
+| **Runner.ipa (TestFlight)** | Dynamic | ARM64 | Production iOS binary signed via Apple Developer account for TestFlight / App Store distribution |
+| **Xcode Archive** | Source | iOS 14.0+ | Direct local compilation workflow via `flutter build ipa --release` |
 
 > **iOS Distribution**: To compile an `.ipa` archive or run on TestFlight, see the [iOS Build Instructions](#ios-build--archival-procedure) section below.
 
@@ -103,6 +114,12 @@ Relationships decay without intentional nurture. Recallr implements an empirical
 - **Firebase App Check Enforcement**: Client attestation verified via Google Play Integrity (Android), Apple DeviceCheck / App Attest (iOS), and reCAPTCHA Enterprise / v3 (Web).
 - **Strict Firestore Sandboxing**: Hardened security rules enforce strict per-UID boundary isolation. Cross-tenant reads, writes, or data leaks are structurally impossible at the database protocol level.
 - **Private Cloud Storage Rules**: User-uploaded media and voice recordings are restricted to authenticated owners with time-limited signed access tokens.
+
+### 6. Sovereign Card Network & Multi-Dimensional Categorization
+- **Self-Sovereign Digital Visiting Cards**: Publish verifiable, customized digital cards with granular field-level privacy controls (choose which phone, email, WhatsApp, socials, or bios are public).
+- **Instant QR Exchange & Scanner**: Seamless offline and online peer-to-peer card exchange via high-contrast QR generation (`qr_flutter`) and instant camera scanning (`mobile_scanner`).
+- **Dynamic Category Taxonomies**: Organize contacts and relationships across custom multi-color taxonomies (*Investors*, *Advisors*, *Portfolio Founders*, *Key Hires*) with instant multi-facet filtering.
+- **Standalone Public Web Card View**: Beautiful, responsive, dark-mode web cards accessible by anyone without requiring app installation, with direct "Save Contact (.vcf)" and "Connect on Recallr" capabilities.
 
 ---
 
@@ -247,8 +264,9 @@ flutter test
 ```
 
 ### Verification Matrix
-- **Automated Tests**: **1,248 / 1,248 Passing** (100% pass rate)
+- **Automated Tests**: **1,252 / 1,252 Passing** (100% pass rate)
 - **Relationship Math**: Verified recency logarithmic decay, cadence thresholds, and score clamping (0–100).
+- **Card Network & Categorization**: Verified QR payload serialization, draft updates, and multi-facet filtering.
 - **Payment & Quota Tests**: Verified credit top-up increments, tier downgrades/upgrades, and idempotent transaction processing.
 - **Security Rule Validation**: Verified zero cross-tenant read/write leaks in Firestore and Storage.
 - **Browser E2E Verification**: Formally audited across Mobile (`420×880`) and Desktop (`1920×912`) displays with zero visual regressions.

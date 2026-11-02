@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
-import '../../core/routing/recallr_routes.dart';
 import '../../core/theme/theme.dart';
 import '../../core/utils/share_formatter.dart';
 import '../../core/widgets/destructive_confirm_dialog.dart';
@@ -56,13 +55,15 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
 
   PersonDetailRepository get _repository =>
       widget.repository ??
-      (mounted ? context.personDetailRepo : RecallrDependencies.instance.personDetailRepository);
+      (mounted
+          ? context.personDetailRepo
+          : RecallrDependencies.instance.personDetailRepository);
 
   @override
   void initState() {
     super.initState();
-    _isLoading = widget.isLoading ||
-        (widget.initialProfile == null && !widget.isError);
+    _isLoading =
+        widget.isLoading || (widget.initialProfile == null && !widget.isError);
     _isError = widget.isError;
     _profile = widget.initialProfile;
   }
@@ -117,7 +118,9 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         oldWidget.initialProfile != widget.initialProfile) {
       setState(() {
         _isLoading = widget.isLoading ||
-            (widget.initialProfile == null && !widget.isError && _profile == null);
+            (widget.initialProfile == null &&
+                !widget.isError &&
+                _profile == null);
         _isError = widget.isError;
         if (widget.initialProfile != null) {
           _profile = widget.initialProfile;
@@ -143,8 +146,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() {
-        });
+        setState(() {});
       }
     }
   }
@@ -175,7 +177,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
           child: Padding(
             padding: RecallrSpacing.pagePadding,
             child: RecallrErrorState(
-              message: "We couldn't load this person's memory dossier. Please try again.",
+              message:
+                  "We couldn't load this person's memory dossier. Please try again.",
               onRetry: _handleRetry,
             ),
           ),
@@ -212,7 +215,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                 RecallrSpacing.gapSm,
                 Text(
                   'No relationship memory matches ID "${widget.personId}".',
-                  style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                  style: RecallrTypography.bodyMedium
+                      .copyWith(color: RecallrColors.textSecondary),
                 ),
                 RecallrSpacing.gapLg,
                 RecallrButton(
@@ -232,12 +236,15 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 768;
-          final double maxWidth = constraints.maxWidth > 1100 ? 1040 : double.infinity;
+          final double maxWidth =
+              constraints.maxWidth > 1100 ? 1040 : double.infinity;
 
           return Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
-              child: isWide ? _buildWideLayout(profile) : _buildMobileLayout(profile),
+              child: isWide
+                  ? _buildWideLayout(profile)
+                  : _buildMobileLayout(profile),
             ),
           );
         },
@@ -297,16 +304,23 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     final confirmed = await DestructiveConfirmDialog.show(
       context,
       title: 'Delete Contact',
-      message: 'Are you sure you want to remove ' + profile.name + ' from your people directory? All associated dossier memories will be permanently deleted.',
+      message: 'Are you sure you want to remove ' +
+          profile.name +
+          ' from your people directory? All associated dossier memories will be permanently deleted.',
       confirmLabel: 'Delete Contact',
     );
 
     if (confirmed == true && mounted) {
       try {
-        final peopleRepo = mounted ? context.peopleRepo : RecallrDependencies.instance.peopleRepository;
+        final peopleRepo = mounted
+            ? context.peopleRepo
+            : RecallrDependencies.instance.peopleRepository;
         await peopleRepo.deletePerson(profile.id);
 
-        final personDetailRepo = widget.repository ?? (mounted ? context.personDetailRepo : RecallrDependencies.instance.personDetailRepository);
+        final personDetailRepo = widget.repository ??
+            (mounted
+                ? context.personDetailRepo
+                : RecallrDependencies.instance.personDetailRepository);
         await personDetailRepo.deleteProfile(profile.id);
 
         if (mounted) {
@@ -322,7 +336,7 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to delete contact: '),
+              content: Text('Failed to delete contact: $e'),
               backgroundColor: RecallrColors.crimsonAlert,
             ),
           );
@@ -351,11 +365,14 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
       decoration: BoxDecoration(
         color: RecallrColors.warmAmberGold.withValues(alpha: 0.12),
         borderRadius: RecallrRadii.radiusMd,
-        border: Border.all(color: RecallrColors.warmAmberGold.withValues(alpha: 0.5), width: 1.0),
+        border: Border.all(
+            color: RecallrColors.warmAmberGold.withValues(alpha: 0.5),
+            width: 1.0),
       ),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded, size: 20.0, color: RecallrColors.warmAmberGold),
+          const Icon(Icons.warning_amber_rounded,
+              size: 20.0, color: RecallrColors.warmAmberGold),
           const SizedBox(width: 10.0),
           Expanded(
             child: Column(
@@ -385,14 +402,17 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: RecallrColors.warmAmberGold,
               foregroundColor: Colors.black,
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(borderRadius: RecallrRadii.radiusSm),
+              shape:
+                  RoundedRectangleBorder(borderRadius: RecallrRadii.radiusSm),
               elevation: 0,
             ),
             onPressed: () => _showEditPersonDialog(profile),
-            child: const Text('Fix', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.0)),
+            child: const Text('Fix',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12.0)),
           ),
         ],
       ),
@@ -415,9 +435,12 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         ),
         title: Row(
           children: [
-            const Icon(Icons.edit_note_rounded, color: RecallrColors.aiCyanHighlight, size: 22.0),
+            const Icon(Icons.edit_note_rounded,
+                color: RecallrColors.aiCyanHighlight, size: 22.0),
             const SizedBox(width: 8.0),
-            Text('Edit Contact Details', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
+            Text('Edit Contact Details',
+                style: RecallrTypography.titleMedium
+                    .copyWith(fontWeight: FontWeight.w700)),
           ],
         ),
         content: SingleChildScrollView(
@@ -425,59 +448,95 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('NAME', style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textTertiary, fontSize: 9.5, fontWeight: FontWeight.w700)),
+              Text('NAME',
+                  style: RecallrTypography.labelSmall.copyWith(
+                      color: RecallrColors.textTertiary,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(height: 4.0),
               TextField(
                 key: const Key('edit_person_name_field'),
                 controller: nameCtrl,
-                style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textPrimary),
+                style: RecallrTypography.bodyMedium
+                    .copyWith(color: RecallrColors.textPrimary),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: RecallrColors.slateSurface,
-                  border: OutlineInputBorder(borderRadius: RecallrRadii.radiusSm, borderSide: const BorderSide(color: RecallrColors.borderSubtle)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  border: OutlineInputBorder(
+                      borderRadius: RecallrRadii.radiusSm,
+                      borderSide:
+                          const BorderSide(color: RecallrColors.borderSubtle)),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 8.0),
                 ),
               ),
               const SizedBox(height: 12.0),
-              Text('COMPANY', style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textTertiary, fontSize: 9.5, fontWeight: FontWeight.w700)),
+              Text('COMPANY',
+                  style: RecallrTypography.labelSmall.copyWith(
+                      color: RecallrColors.textTertiary,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(height: 4.0),
               TextField(
                 key: const Key('edit_person_company_field'),
                 controller: companyCtrl,
-                style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textPrimary),
+                style: RecallrTypography.bodyMedium
+                    .copyWith(color: RecallrColors.textPrimary),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: RecallrColors.slateSurface,
-                  border: OutlineInputBorder(borderRadius: RecallrRadii.radiusSm, borderSide: const BorderSide(color: RecallrColors.borderSubtle)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  border: OutlineInputBorder(
+                      borderRadius: RecallrRadii.radiusSm,
+                      borderSide:
+                          const BorderSide(color: RecallrColors.borderSubtle)),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 8.0),
                 ),
               ),
               const SizedBox(height: 12.0),
-              Text('ROLE', style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textTertiary, fontSize: 9.5, fontWeight: FontWeight.w700)),
+              Text('ROLE',
+                  style: RecallrTypography.labelSmall.copyWith(
+                      color: RecallrColors.textTertiary,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(height: 4.0),
               TextField(
                 key: const Key('edit_person_role_field'),
                 controller: roleCtrl,
-                style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textPrimary),
+                style: RecallrTypography.bodyMedium
+                    .copyWith(color: RecallrColors.textPrimary),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: RecallrColors.slateSurface,
-                  border: OutlineInputBorder(borderRadius: RecallrRadii.radiusSm, borderSide: const BorderSide(color: RecallrColors.borderSubtle)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  border: OutlineInputBorder(
+                      borderRadius: RecallrRadii.radiusSm,
+                      borderSide:
+                          const BorderSide(color: RecallrColors.borderSubtle)),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 8.0),
                 ),
               ),
               const SizedBox(height: 12.0),
-              Text('LOCATION / ADDRESS', style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textTertiary, fontSize: 9.5, fontWeight: FontWeight.w700)),
+              Text('LOCATION / ADDRESS',
+                  style: RecallrTypography.labelSmall.copyWith(
+                      color: RecallrColors.textTertiary,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700)),
               const SizedBox(height: 4.0),
               TextField(
                 key: const Key('edit_person_location_field'),
                 controller: locationCtrl,
-                style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textPrimary),
+                style: RecallrTypography.bodyMedium
+                    .copyWith(color: RecallrColors.textPrimary),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: RecallrColors.slateSurface,
-                  border: OutlineInputBorder(borderRadius: RecallrRadii.radiusSm, borderSide: const BorderSide(color: RecallrColors.borderSubtle)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+                  border: OutlineInputBorder(
+                      borderRadius: RecallrRadii.radiusSm,
+                      borderSide:
+                          const BorderSide(color: RecallrColors.borderSubtle)),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12.0, vertical: 8.0),
                 ),
               ),
             ],
@@ -486,14 +545,16 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(null),
-            child: const Text('Cancel', style: TextStyle(color: RecallrColors.textTertiary)),
+            child: const Text('Cancel',
+                style: TextStyle(color: RecallrColors.textTertiary)),
           ),
           ElevatedButton(
             key: const Key('save_person_edit_button'),
             style: ElevatedButton.styleFrom(
               backgroundColor: RecallrColors.aiElectricViolet,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: RecallrRadii.radiusSm),
+              shape:
+                  RoundedRectangleBorder(borderRadius: RecallrRadii.radiusSm),
             ),
             onPressed: () {
               final newName = nameCtrl.text.trim();
@@ -502,7 +563,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                 company: companyCtrl.text.trim(),
                 role: roleCtrl.text.trim(),
                 location: locationCtrl.text.trim(),
-                initials: PersonProfile.computeInitials(newName.isNotEmpty ? newName : profile.name),
+                initials: PersonProfile.computeInitials(
+                    newName.isNotEmpty ? newName : profile.name),
               );
               Navigator.of(ctx).pop(updatedProfile);
             },
@@ -513,21 +575,41 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     );
 
     if (updated != null && mounted) {
-      await _repository.saveProfile(updated);
-      setState(() {
-        _profile = updated;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contact details updated successfully.')),
-      );
+      try {
+        await _repository.saveProfile(updated);
+        if (!mounted) return;
+        setState(() {
+          _profile = updated;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Contact details updated successfully.')),
+        );
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not save contact details: $error'),
+            backgroundColor: RecallrColors.crimsonAlert,
+          ),
+        );
+      }
     }
   }
 
   Widget _buildMobileLayout(PersonProfile profile) {
-    final bool isPartial = profile.timeline.isEmpty && profile.memories.isEmpty && profile.aiSummary.isNotEmpty;
-    final syncIntel = (mounted ? context.unifiedRelationshipIntelligence : RecallrDependencies.instance.unifiedRelationshipIntelligenceService)
+    final bool isPartial = profile.timeline.isEmpty &&
+        profile.memories.isEmpty &&
+        profile.aiSummary.isNotEmpty;
+    final syncIntel = (mounted
+            ? context.unifiedRelationshipIntelligence
+            : RecallrDependencies
+                .instance.unifiedRelationshipIntelligenceService)
         .computePersonIntelligenceSync(profile: profile);
-    final unified = (_intelligence != null && _intelligence!.personId == profile.id && (_intelligence!.relationshipSignals.interactionCount > 0 || _intelligence!.relationshipStrength.score > 0))
+    final unified = (_intelligence != null &&
+            _intelligence!.personId == profile.id &&
+            (_intelligence!.relationshipSignals.interactionCount > 0 ||
+                _intelligence!.relationshipStrength.score > 0))
         ? _intelligence!
         : syncIntel;
 
@@ -586,47 +668,6 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
               PersonFollowUpsSection(items: profile.followUps),
               RecallrSpacing.gapLg,
               ConnectedEntitiesSection(items: profile.connectedEntities),
-              RecallrSpacing.gapLg,
-              // ── Location, Scheduling, and WhatsApp Action Rows ──────────────
-              _buildPersonActionRow(
-                icon: Icons.location_on_outlined,
-                iconColor: RecallrColors.aiElectricViolet,
-                title: 'Meeting location',
-                subtitle: profile.location.isNotEmpty ? profile.location : 'Add a location or meeting place',
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(profile.location.isNotEmpty ? 'Location: ${profile.location}' : 'Add location')),
-                  );
-                },
-              ),
-              const SizedBox(height: 8.0),
-              _buildPersonActionRow(
-                icon: Icons.calendar_month_outlined,
-                iconColor: RecallrColors.aiElectricViolet,
-                title: 'Schedule a meeting',
-                subtitle: 'Create a calendar event or reminder',
-                onTap: () {
-                  Navigator.of(context).pushNamed(RecallrRoutes.followUps);
-                },
-              ),
-              const SizedBox(height: 8.0),
-              _buildPersonActionRow(
-                icon: Icons.message_rounded,
-                iconColor: RecallrColors.emeraldVerified,
-                title: 'Contact via WhatsApp',
-                subtitle: (profile.phone?.isNotEmpty == true) ? 'Message ${profile.phone}' : 'Available when a valid phone number is saved',
-                onTap: () {
-                  if (profile.phone?.isNotEmpty == true) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Opening WhatsApp for ${profile.phone}')),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Add a phone number in contact details to enable WhatsApp')),
-                    );
-                  }
-                },
-              ),
             ]),
           ),
         ),
@@ -637,74 +678,19 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
     );
   }
 
-  Widget _buildPersonActionRow({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14.0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-        decoration: BoxDecoration(
-          color: RecallrColors.charcoalCard,
-          borderRadius: BorderRadius.circular(14.0),
-          border: Border.all(color: RecallrColors.borderSubtle),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36.0,
-              height: 36.0,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-              child: Icon(icon, color: iconColor, size: 20.0),
-            ),
-            const SizedBox(width: 12.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14.0,
-                      fontWeight: FontWeight.w600,
-                      color: RecallrColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2.0),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 11.5,
-                      color: RecallrColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded, color: RecallrColors.textTertiary, size: 18.0),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildWideLayout(PersonProfile profile) {
-    final bool isPartial = profile.timeline.isEmpty && profile.memories.isEmpty && profile.aiSummary.isNotEmpty;
-    final syncIntel = (mounted ? context.unifiedRelationshipIntelligence : RecallrDependencies.instance.unifiedRelationshipIntelligenceService)
+    final bool isPartial = profile.timeline.isEmpty &&
+        profile.memories.isEmpty &&
+        profile.aiSummary.isNotEmpty;
+    final syncIntel = (mounted
+            ? context.unifiedRelationshipIntelligence
+            : RecallrDependencies
+                .instance.unifiedRelationshipIntelligenceService)
         .computePersonIntelligenceSync(profile: profile);
-    final unified = (_intelligence != null && _intelligence!.personId == profile.id && (_intelligence!.relationshipSignals.interactionCount > 0 || _intelligence!.relationshipStrength.score > 0))
+    final unified = (_intelligence != null &&
+            _intelligence!.personId == profile.id &&
+            (_intelligence!.relationshipSignals.interactionCount > 0 ||
+                _intelligence!.relationshipStrength.score > 0))
         ? _intelligence!
         : syncIntel;
 
@@ -730,7 +716,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (OcrEntityExtractor.isLikelyInvalidName(profile.name)) ...[
+                      if (OcrEntityExtractor.isLikelyInvalidName(
+                          profile.name)) ...[
                         _buildInvalidNamePrompt(profile),
                         RecallrSpacing.gapLg,
                       ],
@@ -761,7 +748,8 @@ class _PersonDetailScreenState extends State<PersonDetailScreen> {
                       RecallrSpacing.gapLg,
                       PersonContextSection(profile: profile),
                       RecallrSpacing.gapLg,
-                      ConnectedEntitiesSection(items: profile.connectedEntities),
+                      ConnectedEntitiesSection(
+                          items: profile.connectedEntities),
                     ],
                   ),
                 ),

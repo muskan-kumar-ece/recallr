@@ -43,6 +43,13 @@ class PhotoDocCaptureView extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPhoto = type == CaptureType.photo;
     final hasFile = pickedMediaFile != null;
+    final imageBytes = pickedMediaFile?.bytes;
+    final canRenderImage = isPhoto &&
+        imageBytes != null &&
+        imageBytes.length > 8 &&
+        ((imageBytes[0] == 0xFF && imageBytes[1] == 0xD8) ||
+            (imageBytes[0] == 0x89 && imageBytes[1] == 0x50 && imageBytes[2] == 0x4E && imageBytes[3] == 0x47) ||
+            (imageBytes[0] == 0x52 && imageBytes[1] == 0x49 && imageBytes[2] == 0x46 && imageBytes[3] == 0x46));
 
     final fileName = hasFile
         ? pickedMediaFile!.name
@@ -53,7 +60,9 @@ class PhotoDocCaptureView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // File / Photo Preview Placeholder
+        // Show the selected image instead of leaving the capture surface as a
+        // static placeholder. PDFs keep a document preview because they are
+        // not safely renderable as an image on every platform.
         Container(
           height: 140.0,
           decoration: BoxDecoration(
@@ -61,36 +70,72 @@ class PhotoDocCaptureView extends StatelessWidget {
             borderRadius: RecallrRadii.radiusMd,
             border: Border.all(color: type.color.withAlpha(90), width: 1.0),
           ),
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isPhoto ? Icons.photo_library_outlined : Icons.description_outlined,
-                  size: 36.0,
-                  color: type.color,
-                ),
-                RecallrSpacing.gapXs,
-                Text(
-                  isPhoto ? 'Whiteboard / Slide Photo Attached' : 'Document Attached (PDF / Deck)',
-                  style: RecallrTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13.5,
+          child: canRenderImage
+              ? ClipRRect(
+                  borderRadius: RecallrRadii.radiusMd,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.memory(imageBytes, fit: BoxFit.cover),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          width: double.infinity,
+                          color: Colors.black.withValues(alpha: 0.65),
+                          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Whiteboard / Slide Photo Attached',
+                                style: const TextStyle(color: Colors.white, fontSize: 11.0, fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                '$fileName$fileSizeText',
+                                style: const TextStyle(color: Colors.white70, fontSize: 10.0),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isPhoto ? Icons.photo_library_outlined : Icons.description_outlined,
+                        size: 36.0,
+                        color: type.color,
+                      ),
+                      RecallrSpacing.gapXs,
+                      Text(
+                        isPhoto
+                            ? 'Whiteboard / Slide Photo Attached'
+                            : 'Document Attached (PDF / Deck)',
+                        style: RecallrTypography.titleMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2.0),
+                      Text(
+                        hasFile ? '$fileName$fileSizeText' : fileName,
+                        style: RecallrTypography.monoMetadata.copyWith(
+                          color: RecallrColors.textTertiary,
+                          fontSize: 11.0,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 2.0),
-                Text(
-                  hasFile ? '$fileName$fileSizeText' : fileName,
-                  style: RecallrTypography.monoMetadata.copyWith(
-                    color: RecallrColors.textTertiary,
-                    fontSize: 11.0,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
         ),
         RecallrSpacing.gapSm,
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/theme.dart';
-import '../../../core/widgets/widgets.dart';
 import '../models/ask_models.dart';
 
 /// People mentions section showing contextual relevance and routing to /person/:id.
@@ -38,71 +37,25 @@ class PeopleMentions extends StatelessWidget {
           ],
         ),
         RecallrSpacing.gapSm,
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: people.length,
-          separatorBuilder: (context, index) => RecallrSpacing.gapSm,
-          itemBuilder: (context, index) {
-            final person = people[index];
-            return RecallrCard(
-              onTap: () => Navigator.of(context).pushNamed(person.targetRoute),
-              child: Row(
-                children: [
-                  RecallrAvatar(
-                    initials: person.initials,
-                    size: RecallrAvatarSize.md,
-                  ),
-                  RecallrSpacing.gapMd,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          person.name,
-                          style: RecallrTypography.titleMedium.copyWith(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13.5,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 1.0),
-                        Text(
-                          '${person.role} · ${person.company}',
-                          style: RecallrTypography.bodyMedium.copyWith(
-                            color: RecallrColors.textSecondary,
-                            fontSize: 12.0,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (person.relationshipContext.isNotEmpty) ...[
-                          const SizedBox(height: 2.0),
-                          Text(
-                            person.relationshipContext,
-                            style: RecallrTypography.labelSmall.copyWith(
-                              color: RecallrColors.aiCyanHighlight,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    size: 18.0,
-                    color: RecallrColors.textTertiary,
-                  ),
-                ],
+        Wrap(
+          spacing: RecallrSpacing.xs,
+          runSpacing: RecallrSpacing.xs,
+          children: people.map((person) {
+            final contextLabel = [person.role, person.company]
+                .where((value) => value.trim().isNotEmpty)
+                .join(' · ');
+            return ActionChip(
+              avatar: CircleAvatar(
+                radius: 10,
+                child:
+                    Text(person.initials, style: const TextStyle(fontSize: 9)),
               ),
+              label: Text(person.name),
+              tooltip: contextLabel.isEmpty ? person.name : contextLabel,
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(person.targetRoute),
             );
-          },
+          }).toList(),
         ),
       ],
     );

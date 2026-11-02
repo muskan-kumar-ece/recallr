@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import '../theme/theme.dart';
 
 /// Modal bottom sheet providing multi-format sharing actions
@@ -77,6 +78,29 @@ class ShareBottomSheet extends StatelessWidget {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  Future<void> _shareText(BuildContext context) async {
+    try {
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          text: textSummary,
+          subject: shareSubject ?? title,
+        ),
+      );
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+      if (result.status == ShareResultStatus.unavailable) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('System sharing is unavailable on this device.')),
+        );
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the system share sheet.')),
+      );
+    }
   }
 
   @override
@@ -166,6 +190,15 @@ class ShareBottomSheet extends StatelessWidget {
 
             // Option 1: Copy Formatted Summary
             _ShareOptionTile(
+              icon: Icons.ios_share_rounded,
+              title: 'Share via device',
+              description: 'Open the standard share sheet for messages, email, or nearby sharing',
+              onTap: () => _shareText(context),
+            ),
+            const SizedBox(height: RecallrSpacing.sm),
+
+            // Option 2: Copy Formatted Summary
+            _ShareOptionTile(
               icon: Icons.copy_rounded,
               title: 'Copy Formatted Summary',
               description: 'Readable text with key takeaways, perfect for messaging or email',
@@ -177,7 +210,7 @@ class ShareBottomSheet extends StatelessWidget {
             ),
             const SizedBox(height: RecallrSpacing.sm),
 
-            // Option 2: Copy vCard Contact (if available)
+            // Option 3: Copy vCard Contact (if available)
             if (hasVCard) ...[
               _ShareOptionTile(
                 icon: Icons.contact_page_outlined,

@@ -22,6 +22,50 @@ service cloud.firestore {
     }
 
     // User Profile Document (/users/{userId})
+    // Card drafts: contact fields, visibility keys, layout, accent, updatedAt.
+    // Publication metadata is written exclusively by Cloud Functions.
+    function validCardDraft(data) {
+      return data.keys().hasOnly(['fields', 'visibleFields', 'layout', 'accent', 'updatedAt',
+          'sourcePersonId', 'publicId', 'published', 'version'])
+        && data.keys().hasAll(['fields', 'visibleFields', 'layout', 'accent', 'updatedAt'])
+        && data.fields is map && data.fields.size() <= 12
+        && data.fields.keys().hasOnly(['name', 'role', 'company', 'bio', 'email', 'phone',
+          'whatsapp', 'location', 'website', 'linkedin', 'services', 'photoUrl'])
+        && cardText(data.fields, 'name', 200) && cardText(data.fields, 'role', 200)
+        && cardText(data.fields, 'company', 200) && cardText(data.fields, 'bio', 1000)
+        && cardText(data.fields, 'email', 200) && cardText(data.fields, 'phone', 200)
+        && cardText(data.fields, 'whatsapp', 200) && cardText(data.fields, 'location', 200)
+        && cardText(data.fields, 'website', 2000) && cardText(data.fields, 'linkedin', 2000)
+        && cardText(data.fields, 'services', 1000) && cardText(data.fields, 'photoUrl', 2000)
+        && data.visibleFields is list && data.visibleFields.size() <= 12
+        && data.visibleFields.hasOnly(['name', 'role', 'company', 'bio', 'email', 'phone',
+          'whatsapp', 'location', 'website', 'linkedin', 'services', 'photoUrl'])
+        && data.layout in ['classic', 'centered']
+        && data.accent is int && data.accent >= 0 && data.accent <= 4294967295
+        && data.updatedAt is timestamp
+        && (!('sourcePersonId' in data) || (data.sourcePersonId is string && data.sourcePersonId.size() <= 128));
+    }
+    function cardText(fields, key, maximum) {
+      return !(key in fields) || (fields[key] is string && fields[key].size() <= maximum);
+    }
+    match /users/{userId}/card_drafts/{draftId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && validCardDraft(request.resource.data)
+        && !request.resource.data.keys().hasAny(['publicId', 'published', 'version']);
+      allow update: if isOwner(userId) && validCardDraft(request.resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['publicId', 'published', 'version']);
+      allow delete: if false;
+    }
+    match /users/{userId}/categories/{categoryId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
+    }
+    // The user explicitly publishes these contact-only projections for public viewing.
+    match /public_cards/{cardId} {
+      allow get: if resource.data.published == true;
+      allow list, write: if false;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) && isValidOwnerDoc(userId);

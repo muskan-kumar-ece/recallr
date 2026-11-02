@@ -12,6 +12,7 @@ import '../services/auth_service.dart';
 import '../core/routing/deep_link_manager.dart';
 import '../core/routing/recallr_routes.dart';
 import '../core/di/recallr_dependencies.dart';
+import '../core/state/recallr_credit_balance.dart';
 import '../features/subscription/models/subscription_models.dart';
 
 /// Responsive Breakpoint constants
@@ -63,6 +64,7 @@ class RecallrAppShellScope extends InheritedWidget {
       RecallrRoutes.home,
       RecallrRoutes.people,
       RecallrRoutes.ask,
+      RecallrRoutes.settings,
     ];
     if (index >= 0 && index < routeNames.length) {
       Navigator.of(context).pushNamed(routeNames[index], arguments: askQuery);
@@ -144,9 +146,13 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
 
   void _initPages() {
     _pages = [
-      HomeScreen(userName: widget.user?.displayName ?? widget.user?.email ?? 'Professional'),
+      HomeScreen(
+          userName:
+              widget.user?.displayName ?? widget.user?.email ?? 'Professional'),
       const PeopleScreen(),
-      AskScreen(key: ValueKey('ask_${_askQuery ?? widget.initialAskQuery}'), initialQuery: _askQuery ?? widget.initialAskQuery),
+      AskScreen(
+          key: ValueKey('ask_${_askQuery ?? widget.initialAskQuery}'),
+          initialQuery: _askQuery ?? widget.initialAskQuery),
       const SettingsScreen(),
     ];
   }
@@ -192,7 +198,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     // Map logical tab index â†’ internal page index
     // 0â†’0 (Home), 1â†’1 (People), 2â†’2 (Ask), 3â†’3 (Settings)
     final pageIndex = index.clamp(0, 3);
-    if (_selectedIndex != pageIndex || (askQuery != null && askQuery != _askQuery)) {
+    if (_selectedIndex != pageIndex ||
+        (askQuery != null && askQuery != _askQuery)) {
       setState(() {
         _selectedIndex = pageIndex;
         if (askQuery != null) {
@@ -262,6 +269,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return RecallrAppShellScope(
       selectedIndex: _selectedIndex,
       selectTab: selectTab,
@@ -282,7 +290,7 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
 
             return Scaffold(
               key: _scaffoldKey,
-              backgroundColor: RecallrColors.obsidianBase,
+              backgroundColor: colors.obsidianBase,
               appBar: _buildAppBar(),
               drawer: _buildAppDrawer(context),
               body: Row(
@@ -317,114 +325,125 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
   PreferredSizeWidget _buildAppBar() {
     final initials = widget.user?.displayName?.isNotEmpty == true
         ? widget.user!.displayName!.substring(0, 1)
-        : (widget.user?.email?.isNotEmpty == true ? widget.user!.email!.substring(0, 1) : 'U');
+        : (widget.user?.email?.isNotEmpty == true
+            ? widget.user!.email!.substring(0, 1)
+            : 'U');
 
     final isHome = _selectedIndex == 0;
 
     return AppBar(
       leading: isHome
           ? IconButton(
-              icon: const Icon(Icons.menu_rounded, color: RecallrColors.textSecondary),
+              icon: const Icon(Icons.menu_rounded,
+                  color: RecallrColors.textSecondary),
               tooltip: 'Menu',
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             )
           : null,
-      title: isHome
-          ? null
-          : Text(_currentTitle),
+      title: isHome ? null : Text(_currentTitle),
       actions: [
         // AI Credits & Subscription Quick Access Pill
         StreamBuilder<UserSubscription>(
           stream: context.subscriptionRepo.streamSubscription(),
           builder: (context, snapshot) {
             final subscription = snapshot.data;
-            final credits = subscription?.totalAvailableCredits ?? 20;
             final tier = subscription?.tier ?? SubscriptionTier.starter;
             final isPro = tier != SubscriptionTier.starter;
 
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: RecallrSpacing.xs),
-                child: Tooltip(
-                  message: 'AI Credits: $credits remaining\nTap to manage subscription & top up',
-                  child: InkWell(
-                    key: const ValueKey<String>('appbar_credits_pill'),
-                    onTap: () {
-                      Navigator.of(context).pushNamed(RecallrRoutes.subscription);
-                    },
-                    borderRadius: RecallrRadii.radiusPill,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 9.0, vertical: 5.0),
-                      decoration: BoxDecoration(
-                        color: isPro
-                            ? RecallrColors.aiElectricViolet.withValues(alpha: 0.15)
-                            : RecallrColors.slateSurface,
+            return ValueListenableBuilder<int?>(
+              valueListenable: RecallrCreditBalance.current,
+              builder: (context, overrideCredits, _) {
+                final credits = overrideCredits ??
+                    subscription?.totalAvailableCredits ??
+                    20;
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: RecallrSpacing.xs),
+                    child: Tooltip(
+                      message:
+                          'AI Credits: $credits remaining\nTap to manage subscription & top up',
+                      child: InkWell(
+                        key: const ValueKey<String>('appbar_credits_pill'),
+                        onTap: () {
+                          Navigator.of(context)
+                              .pushNamed(RecallrRoutes.subscription);
+                        },
                         borderRadius: RecallrRadii.radiusPill,
-                        border: Border.all(
-                          color: isPro
-                              ? RecallrColors.aiElectricViolet.withValues(alpha: 0.4)
-                              : RecallrColors.borderSubtle,
-                          width: 1.0,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.bolt_rounded,
-                            size: 15.0,
-                            color: isPro ? RecallrColors.aiElectricViolet : RecallrColors.warmAmberGold,
-                          ),
-                          const SizedBox(width: 4.0),
-                          Text(
-                            '$credits',
-                            style: RecallrTypography.labelSmall.copyWith(
-                              color: RecallrColors.textPrimary,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12.0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9.0, vertical: 5.0),
+                          decoration: BoxDecoration(
+                            color: isPro
+                                ? RecallrColors.aiElectricViolet
+                                    .withValues(alpha: 0.15)
+                                : RecallrColors.slateSurface,
+                            borderRadius: RecallrRadii.radiusPill,
+                            border: Border.all(
+                              color: isPro
+                                  ? RecallrColors.aiElectricViolet
+                                      .withValues(alpha: 0.4)
+                                  : RecallrColors.borderSubtle,
+                              width: 1.0,
                             ),
                           ),
-                          if (isPro) ...[
-                            const SizedBox(width: 4.0),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 1.0),
-                              decoration: const BoxDecoration(
-                                color: RecallrColors.aiElectricViolet,
-                                borderRadius: RecallrRadii.radiusSm,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.bolt_rounded,
+                                size: 15.0,
+                                color: isPro
+                                    ? RecallrColors.aiElectricViolet
+                                    : RecallrColors.warmAmberGold,
                               ),
-                              child: Text(
-                                tier.displayName.toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 8.0,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.4,
+                              const SizedBox(width: 4.0),
+                              Text(
+                                '$credits',
+                                style: RecallrTypography.labelSmall.copyWith(
+                                  color: RecallrColors.textPrimary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12.0,
                                 ),
                               ),
-                            ),
-                          ],
-                        ],
+                              if (isPro) ...[
+                                const SizedBox(width: 4.0),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4.0, vertical: 1.0),
+                                  decoration: const BoxDecoration(
+                                    color: RecallrColors.aiElectricViolet,
+                                    borderRadius: RecallrRadii.radiusSm,
+                                  ),
+                                  child: Text(
+                                    tier.displayName.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 8.0,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),
         RecallrSpacing.gapXs,
-        // QR Scanner icon
+        // My Card is available from the drawer and Settings; keep the app bar
+        // focused on the high-frequency scan action.
         RecallrIconButton(
-          icon: Icons.qr_code_scanner_rounded,
-          tooltip: 'QR Scanner',
-          onPressed: () {
-            final name = widget.user?.displayName?.isNotEmpty == true
-                ? widget.user!.displayName!
-                : 'Professional';
-            final email = widget.user?.email ?? 'muskan.test.recallr@gmail.com';
-            QrBioSheet.show(context, name: name, email: email);
-          },
-        ),
+            icon: Icons.qr_code_scanner_rounded,
+            tooltip: 'Scan visiting card',
+            onPressed: () => Navigator.of(context).pushNamed('/scan-card')),
         const SizedBox(width: 4.0),
         // User Profile Avatar with Sign Out and Subscription Menu
         PopupMenuButton<String>(
@@ -432,13 +451,15 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           color: RecallrColors.slateSurface,
           shape: RoundedRectangleBorder(
             borderRadius: RecallrRadii.radiusMd,
-            side: const BorderSide(color: RecallrColors.borderSubtle, width: 1.0),
+            side:
+                const BorderSide(color: RecallrColors.borderSubtle, width: 1.0),
           ),
           onSelected: (value) async {
             if (value == 'subscription') {
               Navigator.of(context).pushNamed(RecallrRoutes.subscription);
             } else if (value == 'sign_out') {
               DeepLinkManager().consumePendingPath();
+              RecallrCreditBalance.clear();
               Navigator.of(context).popUntil((route) => route.isFirst);
               await _authService.signOut();
             }
@@ -448,7 +469,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
               enabled: false,
               child: Text(
                 widget.user?.email ?? 'User',
-                style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textSecondary),
+                style: RecallrTypography.labelSmall
+                    .copyWith(color: RecallrColors.textSecondary),
               ),
             ),
             const PopupMenuDivider(height: 1),
@@ -458,7 +480,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.workspace_premium_rounded, size: 18, color: RecallrColors.warmAmberGold),
+                  Icon(Icons.workspace_premium_rounded,
+                      size: 18, color: RecallrColors.warmAmberGold),
                   RecallrSpacing.gapSm,
                   Expanded(
                     child: Text(
@@ -476,12 +499,14 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.logout_rounded, size: 18, color: RecallrColors.crimsonAlert),
+                  const Icon(Icons.logout_rounded,
+                      size: 18, color: RecallrColors.crimsonAlert),
                   RecallrSpacing.gapSm,
                   Expanded(
                     child: Text(
                       'Sign Out',
-                      style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.crimsonAlert),
+                      style: RecallrTypography.bodyMedium
+                          .copyWith(color: RecallrColors.crimsonAlert),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -509,15 +534,18 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
 
     return NavigationRail(
       extended: isDesktop,
-      backgroundColor: RecallrColors.slateSurface,
+      backgroundColor: context.colors.slateSurface,
       selectedIndex: railIndex,
       onDestinationSelected: (i) {
         // rail: 0=Home,1=People,2=Ask,3=Settings
         selectTab(i);
       },
-      labelType: isDesktop ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      labelType: isDesktop
+          ? NavigationRailLabelType.none
+          : NavigationRailLabelType.all,
       leading: Padding(
-        padding: const EdgeInsets.only(top: RecallrSpacing.md, bottom: RecallrSpacing.lg),
+        padding: const EdgeInsets.only(
+            top: RecallrSpacing.md, bottom: RecallrSpacing.lg),
         child: isDesktop
             ? SizedBox(
                 width: 180.0,
@@ -566,7 +594,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
         ),
       ],
       trailing: Padding(
-        padding: const EdgeInsets.only(top: RecallrSpacing.xl, bottom: RecallrSpacing.md),
+        padding: const EdgeInsets.only(
+            top: RecallrSpacing.xl, bottom: RecallrSpacing.md),
         child: isDesktop
             ? StreamBuilder<UserSubscription>(
                 stream: context.subscriptionRepo.streamSubscription(),
@@ -577,20 +606,25 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                   final isPro = tier != SubscriptionTier.starter;
 
                   return InkWell(
-                    key: const ValueKey<String>('nav_rail_subscription_desktop'),
-                    onTap: () => Navigator.of(context).pushNamed(RecallrRoutes.subscription),
+                    key:
+                        const ValueKey<String>('nav_rail_subscription_desktop'),
+                    onTap: () => Navigator.of(context)
+                        .pushNamed(RecallrRoutes.subscription),
                     borderRadius: RecallrRadii.radiusMd,
                     child: Container(
                       width: 180.0,
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10.0, vertical: 8.0),
                       decoration: BoxDecoration(
                         color: isPro
-                            ? RecallrColors.aiElectricViolet.withValues(alpha: 0.12)
+                            ? RecallrColors.aiElectricViolet
+                                .withValues(alpha: 0.12)
                             : RecallrColors.charcoalCard,
                         borderRadius: RecallrRadii.radiusMd,
                         border: Border.all(
                           color: isPro
-                              ? RecallrColors.aiElectricViolet.withValues(alpha: 0.35)
+                              ? RecallrColors.aiElectricViolet
+                                  .withValues(alpha: 0.35)
                               : RecallrColors.borderSubtle,
                           width: 1.0,
                         ),
@@ -598,9 +632,13 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                       child: Row(
                         children: [
                           Icon(
-                            isPro ? Icons.workspace_premium_rounded : Icons.bolt_rounded,
+                            isPro
+                                ? Icons.workspace_premium_rounded
+                                : Icons.bolt_rounded,
                             size: 18.0,
-                            color: isPro ? RecallrColors.aiElectricViolet : RecallrColors.warmAmberGold,
+                            color: isPro
+                                ? RecallrColors.aiElectricViolet
+                                : RecallrColors.warmAmberGold,
                           ),
                           const SizedBox(width: 8.0),
                           Expanded(
@@ -625,7 +663,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                               ],
                             ),
                           ),
-                          const Icon(Icons.arrow_forward_ios_rounded, size: 11.0, color: RecallrColors.textSecondary),
+                          const Icon(Icons.arrow_forward_ios_rounded,
+                              size: 11.0, color: RecallrColors.textSecondary),
                         ],
                       ),
                     ),
@@ -634,9 +673,11 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
               )
             : IconButton(
                 key: const ValueKey<String>('nav_rail_subscription_tablet'),
-                icon: Icon(Icons.workspace_premium_rounded, color: RecallrColors.warmAmberGold),
+                icon: Icon(Icons.workspace_premium_rounded,
+                    color: RecallrColors.warmAmberGold),
                 tooltip: 'Subscription & Cloud Storage',
-                onPressed: () => Navigator.of(context).pushNamed(RecallrRoutes.subscription),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(RecallrRoutes.subscription),
               ),
       ),
     );
@@ -674,7 +715,9 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
   Widget _buildNavItem({required int navPosition, required int destIndex}) {
     final dest = _destinations[destIndex];
     final isSelected = _activeNavPosition == navPosition;
-    final color = isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textSecondary;
+    final color = isSelected
+        ? RecallrColors.aiElectricViolet
+        : RecallrColors.textSecondary;
 
     return Expanded(
       child: InkWell(
@@ -684,7 +727,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isSelected ? dest.selectedIcon : dest.icon, color: color, size: 22.0),
+            Icon(isSelected ? dest.selectedIcon : dest.icon,
+                color: color, size: 22.0),
             const SizedBox(height: 2.0),
             Text(
               dest.label,
@@ -717,7 +761,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: RecallrColors.aiElectricViolet.withValues(alpha: 0.45),
+                    color:
+                        RecallrColors.aiElectricViolet.withValues(alpha: 0.45),
                     blurRadius: 12.0,
                     spreadRadius: 2.0,
                   ),
@@ -738,11 +783,11 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
   Widget _buildAppDrawer(BuildContext context) {
     final name = widget.user?.displayName?.isNotEmpty == true
         ? widget.user!.displayName!
-        : 'Muskan Kumar';
-    final email = widget.user?.email ?? 'muskan.test.recallr@gmail.com';
+        : 'Professional';
+    final email = widget.user?.email ?? 'Not signed in';
 
     return Drawer(
-      backgroundColor: RecallrColors.obsidianBase,
+      backgroundColor: context.colors.obsidianBase,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -777,13 +822,15 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                       children: [
                         Text(
                           name,
-                          style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700),
+                          style: RecallrTypography.titleMedium
+                              .copyWith(fontWeight: FontWeight.w700),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           email,
-                          style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textSecondary),
+                          style: RecallrTypography.labelSmall
+                              .copyWith(color: RecallrColors.textSecondary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -799,30 +846,19 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 children: [
                   _buildDrawerTile(
-                    icon: Icons.home_rounded,
-                    title: 'Home',
-                    isSelected: _selectedIndex == 0,
+                    icon: Icons.badge_outlined,
+                    title: 'My Visiting Card',
                     onTap: () {
                       Navigator.of(context).pop();
-                      selectTab(0);
+                      Navigator.of(context).pushNamed('/my-card');
                     },
                   ),
                   _buildDrawerTile(
-                    icon: Icons.people_outline_rounded,
-                    title: 'People Directory',
-                    isSelected: _selectedIndex == 1,
+                    icon: Icons.folder_outlined,
+                    title: 'Categories',
                     onTap: () {
                       Navigator.of(context).pop();
-                      selectTab(1);
-                    },
-                  ),
-                  _buildDrawerTile(
-                    icon: Icons.search_rounded,
-                    title: 'Search & Ask Recallr',
-                    isSelected: _selectedIndex == 2,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      selectTab(2);
+                      Navigator.of(context).pushNamed('/categories');
                     },
                   ),
                   _buildDrawerTile(
@@ -854,16 +890,8 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                     title: 'Subscription & Credits',
                     onTap: () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pushNamed(RecallrRoutes.subscription);
-                    },
-                  ),
-                  _buildDrawerTile(
-                    icon: Icons.settings_outlined,
-                    title: 'Settings & Preferences',
-                    isSelected: _selectedIndex == 3,
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      selectTab(3);
+                      Navigator.of(context)
+                          .pushNamed(RecallrRoutes.subscription);
                     },
                   ),
                 ],
@@ -871,9 +899,11 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
             ),
             const Divider(color: RecallrColors.borderSubtle, height: 1.0),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: ListTile(
-                leading: const Icon(Icons.logout_rounded, color: RecallrColors.crimsonAlert, size: 20.0),
+                leading: const Icon(Icons.logout_rounded,
+                    color: RecallrColors.crimsonAlert, size: 20.0),
                 title: Text(
                   'Sign Out',
                   style: RecallrTypography.bodyMedium.copyWith(
@@ -881,12 +911,15 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0)),
                 onTap: () async {
                   Navigator.of(context).pop();
-                  await FirebaseAuth.instance.signOut();
+                  RecallrCreditBalance.clear();
+                  await _authService.signOut();
                   if (context.mounted) {
-                    Navigator.of(context).pushNamedAndRemoveUntil(RecallrRoutes.auth, (r) => false);
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                        RecallrRoutes.initial, (r) => false);
                   }
                 },
               ),
@@ -906,13 +939,17 @@ class _RecallrAppShellState extends State<RecallrAppShell> {
     return ListTile(
       leading: Icon(
         icon,
-        color: isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textSecondary,
+        color: isSelected
+            ? RecallrColors.aiElectricViolet
+            : RecallrColors.textSecondary,
         size: 20.0,
       ),
       title: Text(
         title,
         style: RecallrTypography.bodyMedium.copyWith(
-          color: isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textPrimary,
+          color: isSelected
+              ? RecallrColors.aiElectricViolet
+              : RecallrColors.textPrimary,
           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
         ),
       ),

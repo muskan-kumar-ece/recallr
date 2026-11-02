@@ -94,7 +94,9 @@ class TimelineItem {
       date: map['date']?.toString() ?? '',
       locationOrEvent: map['locationOrEvent']?.toString(),
       summary: map['summary']?.toString() ?? '',
-      keyBullets: (map['keyBullets'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      keyBullets:
+          (map['keyBullets'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
       targetRoute: map['targetRoute']?.toString(),
     );
   }
@@ -206,6 +208,8 @@ class ConnectedEntity {
 
 /// Complete 360-degree Person Memory Profile.
 class PersonProfile {
+  final List<String> categoryIds;
+  final String? sourceCardId;
   final String id;
   final String name;
   final String role;
@@ -236,6 +240,8 @@ class PersonProfile {
   final DateTime? lastInteractionAt;
 
   const PersonProfile({
+    this.categoryIds = const [],
+    this.sourceCardId,
     required this.id,
     required this.name,
     required this.role,
@@ -271,7 +277,9 @@ class PersonProfile {
     if (trimmed.isEmpty) return '??';
     final parts = trimmed.split(RegExp(r'\s+'));
     if (parts.length == 1) {
-      return parts.first.substring(0, parts.first.length.clamp(1, 2)).toUpperCase();
+      return parts.first
+          .substring(0, parts.first.length.clamp(1, 2))
+          .toUpperCase();
     }
     return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
@@ -280,6 +288,8 @@ class PersonProfile {
     return {
       'id': id,
       'name': name,
+      'categoryIds': categoryIds,
+      if (sourceCardId != null) 'sourceCardId': sourceCardId,
       'role': role,
       'company': company,
       'companyId': companyId,
@@ -305,7 +315,9 @@ class PersonProfile {
       'userId': userId,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
-      'lastInteractionAt': lastInteractionAt != null ? Timestamp.fromDate(lastInteractionAt!) : null,
+      'lastInteractionAt': lastInteractionAt != null
+          ? Timestamp.fromDate(lastInteractionAt!)
+          : null,
     };
   }
 
@@ -320,6 +332,8 @@ class PersonProfile {
     final rawInitials = map['initials']?.toString() ?? '';
 
     return PersonProfile(
+      categoryIds: List<String>.from(map['categoryIds'] as List? ?? []),
+      sourceCardId: map['sourceCardId'] as String?,
       id: docId ?? map['id']?.toString() ?? '',
       name: nameStr,
       role: map['role']?.toString() ?? '',
@@ -327,7 +341,9 @@ class PersonProfile {
       companyId: map['companyId']?.toString(),
       email: map['email']?.toString(),
       phone: map['phone']?.toString(),
-      location: map['location']?.toString() ?? map['locationOrEvent']?.toString() ?? '',
+      location: map['location']?.toString() ??
+          map['locationOrEvent']?.toString() ??
+          '',
       initials: rawInitials.isNotEmpty ? rawInitials : computeInitials(nameStr),
       relationshipType: RelationshipContextType.values.firstWhere(
         (e) => e.name == map['relationshipType'],
@@ -339,31 +355,42 @@ class PersonProfile {
       totalInteractions: (map['totalInteractions'] as num?)?.toInt() ?? 0,
       sharedEventsCount: (map['sharedEventsCount'] as num?)?.toInt() ?? 0,
       aiSummary: map['aiSummary']?.toString() ?? '',
-      keyTakeaways: (map['keyTakeaways'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      capabilities: (map['capabilities'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      keyTakeaways:
+          (map['keyTakeaways'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
+      capabilities:
+          (map['capabilities'] as List?)?.map((e) => e.toString()).toList() ??
+              const [],
+      brands: (map['brands'] as List?)?.map((e) => e.toString()).toList() ??
+          const [],
       timeline: (map['timeline'] as List?)
-              ?.map((e) => e is Map<String, dynamic> ? TimelineItem.fromMap(e) : null)
+              ?.map((e) =>
+                  e is Map<String, dynamic> ? TimelineItem.fromMap(e) : null)
               .whereType<TimelineItem>()
               .toList() ??
           const [],
       memories: (map['memories'] as List?)
-              ?.map((e) => e is Map<String, dynamic> ? MemoryItem.fromMap(e) : null)
+              ?.map((e) =>
+                  e is Map<String, dynamic> ? MemoryItem.fromMap(e) : null)
               .whereType<MemoryItem>()
               .toList() ??
           const [],
       followUps: (map['followUps'] as List?)
-              ?.map((e) => e is Map<String, dynamic> ? FollowUpItem.fromMap(e) : null)
+              ?.map((e) =>
+                  e is Map<String, dynamic> ? FollowUpItem.fromMap(e) : null)
               .whereType<FollowUpItem>()
               .toList() ??
           const [],
       connectedEntities: (map['connectedEntities'] as List?)
-              ?.map((e) => e is Map<String, dynamic> ? ConnectedEntity.fromMap(e) : null)
+              ?.map((e) =>
+                  e is Map<String, dynamic> ? ConnectedEntity.fromMap(e) : null)
               .whereType<ConnectedEntity>()
               .toList() ??
           const [],
-      promptSuggestions:
-          (map['promptSuggestions'] as List?)?.map((e) => e.toString()).toList() ?? const [],
+      promptSuggestions: (map['promptSuggestions'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       userId: map['userId']?.toString(),
       createdAt: parseDate(map['createdAt']),
       updatedAt: parseDate(map['updatedAt']),
@@ -377,6 +404,9 @@ class PersonProfile {
   }
 
   PersonProfile copyWith({
+    List<String>? categoryIds,
+    bool clearEmail = false,
+    bool clearPhone = false,
     String? id,
     String? name,
     String? role,
@@ -407,13 +437,15 @@ class PersonProfile {
     DateTime? lastInteractionAt,
   }) {
     return PersonProfile(
+      categoryIds: categoryIds ?? this.categoryIds,
+      sourceCardId: sourceCardId,
       id: id ?? this.id,
       name: name ?? this.name,
       role: role ?? this.role,
       company: company ?? this.company,
       companyId: companyId ?? this.companyId,
-      email: email ?? this.email,
-      phone: phone ?? this.phone,
+      email: clearEmail ? null : email ?? this.email,
+      phone: clearPhone ? null : phone ?? this.phone,
       location: location ?? this.location,
       initials: initials ?? this.initials,
       relationshipType: relationshipType ?? this.relationshipType,

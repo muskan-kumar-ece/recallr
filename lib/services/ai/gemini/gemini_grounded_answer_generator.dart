@@ -66,7 +66,8 @@ class GeminiGroundedAnswerGenerator implements AiAnswerGenerator {
       final parsed = responseParser.parse(result.text);
       if (!parsed.isSuccess) {
         // Fall back deterministically on malformed output
-        return await fallbackGenerator.generateAnswer(request: request, context: context);
+        final fallback = await fallbackGenerator.generateAnswer(request: request, context: context);
+        return fallback.copyWith(remainingCredits: result.remainingCredits);
       }
 
       // 6. Validate output against Recallr evidence to prevent hallucinations
@@ -76,7 +77,7 @@ class GeminiGroundedAnswerGenerator implements AiAnswerGenerator {
         request: request,
       );
 
-      return validated;
+      return validated.copyWith(remainingCredits: result.remainingCredits);
     } catch (_) {
       // 7. Intelligent Fallback: On any provider failure, timeout, 429, or network error,
       // fallback to deterministic grounded answer generation smoothly without crashing

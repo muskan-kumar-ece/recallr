@@ -1,4 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import '../../firebase_options.dart';
 import '../di/recallr_dependencies.dart';
@@ -44,11 +46,15 @@ class FirebaseBootstrap {
     TelemetryService? telemetryOverride,
   }) async {
     final config = configOverride ?? EnvironmentConfig.current();
-    final appCheckService = appCheckOverride ?? FirebaseAppCheckService(config: config);
-    final crashReporting = crashReportingOverride ?? ProductionCrashReportingService(config: config);
-    final telemetry = telemetryOverride ?? ProductionTelemetryService(config: config);
+    final appCheckService =
+        appCheckOverride ?? FirebaseAppCheckService(config: config);
+    final crashReporting = crashReportingOverride ??
+        ProductionCrashReportingService(config: config);
+    final telemetry =
+        telemetryOverride ?? ProductionTelemetryService(config: config);
 
-    _logger.info('Starting Recallr Bootstrap for environment: ${config.environment.name}');
+    _logger.info(
+        'Starting Recallr Bootstrap for environment: ${config.environment.name}');
 
     // Step 0: Wire Global Error Listeners
     try {
@@ -64,7 +70,8 @@ class FirebaseBootstrap {
       };
 
       PlatformDispatcher.instance.onError = (error, stack) {
-        crashReporting.recordFatalError(error, stack, reason: 'Uncaught Platform Error');
+        crashReporting.recordFatalError(error, stack,
+            reason: 'Uncaught Platform Error');
         return true;
       };
 
@@ -78,7 +85,10 @@ class FirebaseBootstrap {
         ),
       );
     } catch (e, st) {
-      _logger.warning('Failed to initialize crash reporting or telemetry during bootstrap', e, st);
+      _logger.warning(
+          'Failed to initialize crash reporting or telemetry during bootstrap',
+          e,
+          st);
     }
 
     // Step 1: Validate Environment Configuration
@@ -110,6 +120,10 @@ class FirebaseBootstrap {
     try {
       final options = optionsOverride ?? DefaultFirebaseOptions.currentPlatform;
       await Firebase.initializeApp(options: options);
+      final preferences = await SharedPreferences.getInstance();
+      FirebaseFirestore.instance.settings = Settings(
+        persistenceEnabled: preferences.getBool('offlinePersistence') ?? true,
+      );
       _logger.info('Firebase.initializeApp completed successfully.');
 
       telemetry.recordEvent(
@@ -148,7 +162,8 @@ class FirebaseBootstrap {
     // Step 3: Activate App Check
     try {
       await appCheckService.activate();
-      _logger.info('App Check step completed. Activated: ${appCheckService.isActivated}');
+      _logger.info(
+          'App Check step completed. Activated: ${appCheckService.isActivated}');
 
       telemetry.recordEvent(
         TelemetryEvent(
@@ -156,7 +171,9 @@ class FirebaseBootstrap {
           environment: config.environment,
           feature: TelemetryFeature.bootstrap,
           operation: 'activateAppCheck',
-          severity: appCheckService.isActivated ? TelemetrySeverity.info : TelemetrySeverity.warning,
+          severity: appCheckService.isActivated
+              ? TelemetrySeverity.info
+              : TelemetrySeverity.warning,
           isSuccess: appCheckService.isActivated,
           provider: appCheckService.activeProviderType.name,
         ),

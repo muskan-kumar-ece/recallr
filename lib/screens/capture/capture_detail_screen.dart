@@ -58,9 +58,12 @@ class _CaptureDetailScreenState extends State<CaptureDetailScreen> {
         ),
         title: Row(
           children: [
-            const Icon(Icons.delete_outline_rounded, color: RecallrColors.crimsonAlert, size: 22),
+            const Icon(Icons.delete_outline_rounded,
+                color: RecallrColors.crimsonAlert, size: 22),
             const SizedBox(width: 8),
-            Text('Delete Capture', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
+            Text('Delete Capture',
+                style: RecallrTypography.titleMedium
+                    .copyWith(fontWeight: FontWeight.w700)),
           ],
         ),
         content: const Text(
@@ -70,14 +73,16 @@ class _CaptureDetailScreenState extends State<CaptureDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: RecallrColors.textTertiary)),
+            child: const Text('Cancel',
+                style: TextStyle(color: RecallrColors.textTertiary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
               foregroundColor: RecallrColors.crimsonAlert,
               elevation: 0,
-              side: const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
+              side:
+                  const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Delete'),
@@ -89,7 +94,22 @@ class _CaptureDetailScreenState extends State<CaptureDetailScreen> {
     if (confirmed == true && mounted) {
       try {
         final repo = RecallrDependencies.instance.captureRepository;
+        final item = _capture;
         await repo.deleteCapture(widget.captureId);
+        if (item?.storagePath?.isNotEmpty == true) {
+          try {
+            await RecallrDependencies.instance.mediaStorageRepository
+                .deleteCaptureMedia(
+                    captureId: widget.captureId,
+                    storagePath: item!.storagePath!);
+            if (item.fileSize != null && item.fileSize! > 0) {
+              await RecallrDependencies.instance.subscriptionRepository
+                  .updateStorageUsage(deltaBytes: -item.fileSize!);
+            }
+          } catch (_) {
+            // The database deletion remains successful; a later cleanup job can retry media removal.
+          }
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -117,7 +137,9 @@ class _CaptureDetailScreenState extends State<CaptureDetailScreen> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: RecallrColors.obsidianBase,
-        body: Center(child: CircularProgressIndicator(color: RecallrColors.aiCyanHighlight)),
+        body: Center(
+            child: CircularProgressIndicator(
+                color: RecallrColors.aiCyanHighlight)),
       );
     }
 
@@ -131,7 +153,8 @@ class _CaptureDetailScreenState extends State<CaptureDetailScreen> {
         body: Center(
           child: Text(
             _error ?? 'Capture not found',
-            style: RecallrTypography.bodyLarge.copyWith(color: RecallrColors.textSecondary),
+            style: RecallrTypography.bodyLarge
+                .copyWith(color: RecallrColors.textSecondary),
           ),
         ),
       );
@@ -142,11 +165,14 @@ class _CaptureDetailScreenState extends State<CaptureDetailScreen> {
       backgroundColor: RecallrColors.obsidianBase,
       appBar: AppBar(
         backgroundColor: RecallrColors.obsidianBase,
-        title: Text('Capture Detail', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
+        title: Text('Capture Detail',
+            style: RecallrTypography.titleMedium
+                .copyWith(fontWeight: FontWeight.w700)),
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: RecallrColors.crimsonAlert),
+            icon: const Icon(Icons.delete_outline_rounded,
+                color: RecallrColors.crimsonAlert),
             tooltip: 'Delete Capture',
             onPressed: _handleDeleteCapture,
           ),
@@ -166,21 +192,28 @@ class _CaptureDetailScreenState extends State<CaptureDetailScreen> {
                 RecallrSpacing.gapSm,
                 Text(
                   item.timestamp,
-                  style: RecallrTypography.monoMetadata.copyWith(color: RecallrColors.textTertiary),
+                  style: RecallrTypography.monoMetadata
+                      .copyWith(color: RecallrColors.textTertiary),
                 ),
               ],
             ),
             RecallrSpacing.gapMd,
-            Text(item.title, style: RecallrTypography.headlineMedium.copyWith(fontWeight: FontWeight.w700)),
+            Text(item.title,
+                style: RecallrTypography.headlineMedium
+                    .copyWith(fontWeight: FontWeight.w700)),
             RecallrSpacing.gapLg,
             if (item.description.isNotEmpty) ...[
               RecallrCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Summary', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w600)),
+                    Text('Summary',
+                        style: RecallrTypography.titleMedium
+                            .copyWith(fontWeight: FontWeight.w600)),
                     RecallrSpacing.gapSm,
-                    Text(item.description, style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary)),
+                    Text(item.description,
+                        style: RecallrTypography.bodyMedium
+                            .copyWith(color: RecallrColors.textSecondary)),
                   ],
                 ),
               ),
@@ -191,23 +224,30 @@ class _CaptureDetailScreenState extends State<CaptureDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Identified Entity', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w600)),
+                    Text('Identified Entity',
+                        style: RecallrTypography.titleMedium
+                            .copyWith(fontWeight: FontWeight.w600)),
                     RecallrSpacing.gapSm,
                     if (item.personName != null)
                       Row(
                         children: [
-                          const Icon(Icons.person_outline_rounded, size: 16.0, color: RecallrColors.aiCyanHighlight),
+                          const Icon(Icons.person_outline_rounded,
+                              size: 16.0, color: RecallrColors.aiCyanHighlight),
                           const SizedBox(width: 8.0),
-                          Text(item.personName!, style: RecallrTypography.bodyMedium),
+                          Text(item.personName!,
+                              style: RecallrTypography.bodyMedium),
                         ],
                       ),
                     if (item.companyName != null) ...[
                       const SizedBox(height: 6.0),
                       Row(
                         children: [
-                          const Icon(Icons.business_outlined, size: 16.0, color: RecallrColors.textTertiary),
+                          const Icon(Icons.business_outlined,
+                              size: 16.0, color: RecallrColors.textTertiary),
                           const SizedBox(width: 8.0),
-                          Text(item.companyName!, style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary)),
+                          Text(item.companyName!,
+                              style: RecallrTypography.bodyMedium.copyWith(
+                                  color: RecallrColors.textSecondary)),
                         ],
                       ),
                     ],

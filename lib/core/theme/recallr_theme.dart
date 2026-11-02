@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'recallr_colors.dart';
 import 'recallr_spacing.dart';
 import 'recallr_radii.dart';
@@ -38,22 +39,39 @@ class RecallrThemeColors extends ThemeExtension<RecallrThemeColors> {
     required this.borderHighlight,
   });
 
-  static const dark = RecallrThemeColors(
-    obsidianBase: RecallrColors.obsidianBase,
-    slateSurface: RecallrColors.slateSurface,
-    charcoalCard: RecallrColors.charcoalCard,
-    glassOverlay: RecallrColors.glassOverlay,
-    aiElectricViolet: RecallrColors.aiElectricViolet,
-    aiCyanHighlight: RecallrColors.aiCyanHighlight,
-    warmAmberGold: RecallrColors.warmAmberGold,
-    emeraldVerified: RecallrColors.emeraldVerified,
-    crimsonAlert: RecallrColors.crimsonAlert,
-    textPrimary: RecallrColors.textPrimary,
-    textSecondary: RecallrColors.textSecondary,
-    textTertiary: RecallrColors.textTertiary,
-    borderSubtle: RecallrColors.borderSubtle,
-    borderHighlight: RecallrColors.borderHighlight,
-  );
+  static RecallrThemeColors get dark => RecallrThemeColors(
+        obsidianBase: const Color(0xFF09090B),
+        slateSurface: const Color(0xFF18181B),
+        charcoalCard: const Color(0xFF202024),
+        glassOverlay: const Color(0xB318181B),
+        aiElectricViolet: RecallrColors.aiElectricViolet,
+        aiCyanHighlight: RecallrColors.aiCyanHighlight,
+        warmAmberGold: RecallrColors.warmAmberGold,
+        emeraldVerified: RecallrColors.emeraldVerified,
+        crimsonAlert: RecallrColors.crimsonAlert,
+        textPrimary: const Color(0xFFF5F5F7),
+        textSecondary: const Color(0xFFA1A1AA),
+        textTertiary: const Color(0xFF71717A),
+        borderSubtle: const Color(0xFF27272A),
+        borderHighlight: const Color(0xFF3F3F46),
+      );
+
+  static RecallrThemeColors get light => RecallrThemeColors(
+        obsidianBase: const Color(0xFFF7F7FA),
+        slateSurface: Colors.white,
+        charcoalCard: const Color(0xFFF0F0F4),
+        glassOverlay: const Color(0xE6FFFFFF),
+        aiElectricViolet: RecallrColors.aiElectricViolet,
+        aiCyanHighlight: RecallrColors.aiCyanHighlight,
+        warmAmberGold: RecallrColors.warmAmberGold,
+        emeraldVerified: RecallrColors.emeraldVerified,
+        crimsonAlert: const Color(0xFFDC2626),
+        textPrimary: const Color(0xFF18181B),
+        textSecondary: const Color(0xFF52525B),
+        textTertiary: const Color(0xFF71717A),
+        borderSubtle: const Color(0xFFE4E4E7),
+        borderHighlight: const Color(0xFFA1A1AA),
+      );
 
   @override
   ThemeExtension<RecallrThemeColors> copyWith({
@@ -101,7 +119,8 @@ class RecallrThemeColors extends ThemeExtension<RecallrThemeColors> {
       slateSurface: Color.lerp(slateSurface, other.slateSurface, t)!,
       charcoalCard: Color.lerp(charcoalCard, other.charcoalCard, t)!,
       glassOverlay: Color.lerp(glassOverlay, other.glassOverlay, t)!,
-      aiElectricViolet: Color.lerp(aiElectricViolet, other.aiElectricViolet, t)!,
+      aiElectricViolet:
+          Color.lerp(aiElectricViolet, other.aiElectricViolet, t)!,
       aiCyanHighlight: Color.lerp(aiCyanHighlight, other.aiCyanHighlight, t)!,
       warmAmberGold: Color.lerp(warmAmberGold, other.warmAmberGold, t)!,
       emeraldVerified: Color.lerp(emeraldVerified, other.emeraldVerified, t)!,
@@ -122,76 +141,127 @@ extension RecallrThemeExtension on BuildContext {
   TextTheme get text => Theme.of(this).textTheme;
 }
 
+/// Runtime theme preference shared by the app shell and Settings.
+class RecallrThemeModeController {
+  RecallrThemeModeController._();
+
+  static final ValueNotifier<ThemeMode> mode = ValueNotifier(ThemeMode.system);
+  static Future<void> initialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString('themeMode');
+    mode.value = ThemeMode.values
+        .firstWhere((m) => m.name == saved, orElse: () => ThemeMode.system);
+  }
+
+  static Future<void> setMode(ThemeMode value) async {
+    mode.value = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('themeMode', value.name);
+  }
+
+  static String label(ThemeMode themeMode) {
+    switch (themeMode) {
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+      case ThemeMode.system:
+        return 'System';
+    }
+  }
+}
+
 /// Central Recallr Flutter ThemeData configuration.
 class RecallrTheme {
   RecallrTheme._();
 
-  static ThemeData get darkTheme {
+  static ThemeData get darkTheme => _buildTheme(
+        brightness: Brightness.dark,
+        colors: RecallrThemeColors.dark,
+      );
+
+  static ThemeData get lightTheme => _buildTheme(
+        brightness: Brightness.light,
+        colors: RecallrThemeColors.light,
+      );
+
+  static ThemeData _buildTheme({
+    required Brightness brightness,
+    required RecallrThemeColors colors,
+  }) {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: RecallrColors.obsidianBase,
-      canvasColor: RecallrColors.slateSurface,
-      extensions: const [RecallrThemeColors.dark],
-      textTheme: RecallrTypography.textTheme,
-      colorScheme: const ColorScheme.dark(
-        primary: RecallrColors.aiElectricViolet,
-        onPrimary: RecallrColors.textPrimary,
-        secondary: RecallrColors.aiCyanHighlight,
-        onSecondary: RecallrColors.obsidianBase,
-        surface: RecallrColors.charcoalCard,
-        onSurface: RecallrColors.textPrimary,
-        error: RecallrColors.crimsonAlert,
-        onError: RecallrColors.textPrimary,
+      brightness: brightness,
+      scaffoldBackgroundColor: colors.obsidianBase,
+      canvasColor: colors.slateSurface,
+      extensions: [colors],
+      textTheme: RecallrTypography.textTheme.apply(
+        bodyColor: colors.textPrimary,
+        displayColor: colors.textPrimary,
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: RecallrColors.obsidianBase,
+      colorScheme: ColorScheme(
+        brightness: brightness,
+        primary: RecallrColors.aiElectricViolet,
+        onPrimary: colors.textPrimary,
+        secondary: RecallrColors.aiCyanHighlight,
+        onSecondary: colors.obsidianBase,
+        surface: colors.charcoalCard,
+        onSurface: colors.textPrimary,
+        error: colors.crimsonAlert,
+        onError: colors.textPrimary,
+        surfaceContainerHighest: colors.charcoalCard,
+      ),
+      appBarTheme: AppBarTheme(
+        backgroundColor: colors.obsidianBase,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        iconTheme: IconThemeData(color: RecallrColors.textPrimary, size: RecallrIconography.lg),
-        titleTextStyle: RecallrTypography.headlineMedium,
+        iconTheme: IconThemeData(
+            color: colors.textPrimary, size: RecallrIconography.lg),
+        titleTextStyle: RecallrTypography.headlineMedium
+            .copyWith(color: colors.textPrimary),
       ),
       cardTheme: CardThemeData(
-        color: RecallrColors.charcoalCard,
+        color: colors.charcoalCard,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: RecallrRadii.radiusLg,
-          side: const BorderSide(color: RecallrColors.borderSubtle, width: 1),
+          side: BorderSide(color: colors.borderSubtle, width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: RecallrColors.charcoalCard,
+        fillColor: colors.charcoalCard,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: RecallrSpacing.md,
           vertical: RecallrSpacing.md,
         ),
-        hintStyle: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textTertiary),
+        hintStyle:
+            RecallrTypography.bodyMedium.copyWith(color: colors.textTertiary),
         labelStyle: RecallrTypography.bodyMedium,
         border: OutlineInputBorder(
           borderRadius: RecallrRadii.radiusMd,
-          borderSide: const BorderSide(color: RecallrColors.borderSubtle, width: 1),
+          borderSide: BorderSide(color: colors.borderSubtle, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: RecallrRadii.radiusMd,
-          borderSide: const BorderSide(color: RecallrColors.borderSubtle, width: 1),
+          borderSide: BorderSide(color: colors.borderSubtle, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: RecallrRadii.radiusMd,
-          borderSide: const BorderSide(color: RecallrColors.borderHighlight, width: 1.5),
+          borderSide: BorderSide(color: colors.borderHighlight, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: RecallrRadii.radiusMd,
-          borderSide: const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
+          borderSide: BorderSide(color: colors.crimsonAlert, width: 1),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: RecallrColors.aiElectricViolet,
-          foregroundColor: RecallrColors.textPrimary,
+          foregroundColor: colors.textPrimary,
           elevation: 0,
           minimumSize: const Size(48, 48),
           padding: RecallrSpacing.buttonPadding,
@@ -201,9 +271,9 @@ class RecallrTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: RecallrColors.textPrimary,
+          foregroundColor: colors.textPrimary,
           minimumSize: const Size(48, 48),
-          side: const BorderSide(color: RecallrColors.borderSubtle, width: 1),
+          side: BorderSide(color: colors.borderSubtle, width: 1),
           padding: RecallrSpacing.buttonPadding,
           shape: RoundedRectangleBorder(borderRadius: RecallrRadii.radiusMd),
           textStyle: RecallrTypography.titleMedium,
@@ -213,42 +283,45 @@ class RecallrTheme {
         style: TextButton.styleFrom(
           foregroundColor: RecallrColors.aiCyanHighlight,
           minimumSize: const Size(48, 48),
-          padding: const EdgeInsets.symmetric(horizontal: RecallrSpacing.md, vertical: RecallrSpacing.sm),
+          padding: const EdgeInsets.symmetric(
+              horizontal: RecallrSpacing.md, vertical: RecallrSpacing.sm),
           textStyle: RecallrTypography.titleMedium,
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: RecallrColors.slateSurface,
-        disabledColor: RecallrColors.charcoalCard,
+        backgroundColor: colors.slateSurface,
+        disabledColor: colors.charcoalCard,
         selectedColor: RecallrColors.aiElectricViolet,
         labelStyle: RecallrTypography.bodyMedium,
-        padding: const EdgeInsets.symmetric(horizontal: RecallrSpacing.sm, vertical: RecallrSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+            horizontal: RecallrSpacing.sm, vertical: RecallrSpacing.xs),
         shape: RoundedRectangleBorder(
           borderRadius: RecallrRadii.radiusPill,
-          side: const BorderSide(color: RecallrColors.borderSubtle, width: 1),
+          side: BorderSide(color: colors.borderSubtle, width: 1),
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: RecallrColors.slateSurface,
+        backgroundColor: colors.slateSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: RecallrRadii.radiusLg,
-          side: const BorderSide(color: RecallrColors.borderHighlight, width: 1),
+          side: BorderSide(color: colors.borderHighlight, width: 1),
         ),
         titleTextStyle: RecallrTypography.headlineMedium,
         contentTextStyle: RecallrTypography.bodyLarge,
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: RecallrColors.slateSurface,
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colors.slateSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: RecallrRadii.radiusTopSheet),
-        dragHandleColor: RecallrColors.textTertiary,
+        shape:
+            RoundedRectangleBorder(borderRadius: RecallrRadii.radiusTopSheet),
+        dragHandleColor: colors.textTertiary,
         showDragHandle: true,
       ),
-      dividerTheme: const DividerThemeData(
-        color: RecallrColors.borderSubtle,
+      dividerTheme: DividerThemeData(
+        color: colors.borderSubtle,
         thickness: 1,
         space: 1,
       ),

@@ -6,7 +6,6 @@ import 'package:flutter/widgets.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../core/logging/safe_logger.dart';
 import '../../features/subscription/models/subscription_models.dart';
-import '../../repositories/subscription_repository.dart';
 import 'payment_service.dart';
 import 'web_checkout_bridge.dart';
 
@@ -14,7 +13,6 @@ class RazorpayPaymentService implements PaymentService {
   static final SafeLogger _logger = SafeLogger('RazorpayPaymentService');
 
   final FirebaseFunctions? _functionsOverride;
-  final SubscriptionRepository? _subscriptionRepository;
   final String? _keyIdOverride;
 
   Razorpay? _nativeRazorpay;
@@ -23,10 +21,8 @@ class RazorpayPaymentService implements PaymentService {
 
   RazorpayPaymentService({
     FirebaseFunctions? functions,
-    SubscriptionRepository? subscriptionRepository,
     String? keyIdOverride,
   })  : _functionsOverride = functions,
-        _subscriptionRepository = subscriptionRepository,
         _keyIdOverride = keyIdOverride;
 
   FirebaseFunctions get _functions {
@@ -266,25 +262,6 @@ class RazorpayPaymentService implements PaymentService {
       );
     } catch (e, st) {
       _logger.error('Payment verification failed', e, st);
-      final subRepo = _subscriptionRepository;
-      if (subRepo != null) {
-        if (catalogId.contains('150') || catalogId.contains('500') || catalogId.contains('1500')) {
-          final pack = CreditPack.fromId(catalogId) ??
-              CreditPack.values.firstWhere(
-                (p) => catalogId.contains(p.credits.toString()),
-                orElse: () => CreditPack.pack150,
-              );
-          await subRepo.purchaseCreditPack(pack);
-        } else if (catalogId.contains('tier_') || catalogId.contains('pro') || catalogId.contains('executive')) {
-          final isPro = catalogId.contains('pro');
-          final isAnnual = catalogId.contains('annual');
-          await subRepo.upgradeTier(
-            isPro ? SubscriptionTier.pro : SubscriptionTier.executive,
-            annual: isAnnual,
-          );
-        }
-        return PaymentResult.success(orderId: orderId, paymentId: paymentId);
-      }
       return PaymentResult.failed(
         errorMessage: 'Verification call failed: $e',
         orderId: orderId,

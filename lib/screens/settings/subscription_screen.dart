@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
 import '../../core/routing/recallr_routes.dart';
+import '../../core/state/recallr_credit_balance.dart';
 import '../../core/theme/theme.dart';
 import '../../core/widgets/widgets.dart';
 import '../../features/subscription/models/subscription_models.dart';
@@ -92,13 +93,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       );
 
       if (result.isSuccess) {
+        RecallrCreditBalance.clear();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: RecallrColors.slateSurface,
               content: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: RecallrColors.emeraldVerified, size: 20),
+                  const Icon(Icons.check_circle_rounded,
+                      color: RecallrColors.emeraldVerified, size: 20),
                   RecallrSpacing.gapSm,
                   Text('Added ${pack.credits} AI credits to your account!'),
                 ],
@@ -110,7 +113,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
-            content: Text(result.errorMessage ?? 'Payment failed. Please try again.'),
+            content: Text(
+                result.errorMessage ?? 'Payment failed. Please try again.'),
           ),
         );
       }
@@ -147,13 +151,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       );
 
       if (result.isSuccess) {
+        RecallrCreditBalance.clear();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               backgroundColor: RecallrColors.slateSurface,
               content: Row(
                 children: [
-                  const Icon(Icons.workspace_premium_rounded, color: RecallrColors.aiElectricViolet, size: 20),
+                  const Icon(Icons.workspace_premium_rounded,
+                      color: RecallrColors.aiElectricViolet, size: 20),
                   RecallrSpacing.gapSm,
                   Text('Upgraded to ${tier.displayName}!'),
                 ],
@@ -165,7 +171,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
-            content: Text(result.errorMessage ?? 'Upgrade failed. Please try again.'),
+            content: Text(
+                result.errorMessage ?? 'Upgrade failed. Please try again.'),
           ),
         );
       }
@@ -212,17 +219,22 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         actions: [
           TextButton.icon(
             onPressed: _toggleCurrency,
-            icon: const Icon(Icons.currency_exchange_rounded, size: 16, color: RecallrColors.textSecondary),
+            icon: const Icon(Icons.currency_exchange_rounded,
+                size: 16, color: RecallrColors.textSecondary),
             label: Text(
               sub.currency,
-              style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textPrimary, fontWeight: FontWeight.w700),
+              style: RecallrTypography.bodyMedium.copyWith(
+                  color: RecallrColors.textPrimary,
+                  fontWeight: FontWeight.w700),
             ),
           ),
           RecallrSpacing.gapSm,
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: RecallrColors.aiElectricViolet))
+          ? const Center(
+              child: CircularProgressIndicator(
+                  color: RecallrColors.aiElectricViolet))
           : Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 800),
@@ -275,7 +287,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   border: Border.all(color: badgeColor.withAlpha(80)),
                 ),
                 child: Icon(
-                  isExec ? Icons.military_tech_rounded : (isPro ? Icons.workspace_premium_rounded : Icons.shield_outlined),
+                  isExec
+                      ? Icons.military_tech_rounded
+                      : (isPro
+                          ? Icons.workspace_premium_rounded
+                          : Icons.shield_outlined),
                   color: badgeColor,
                   size: 26,
                 ),
@@ -287,36 +303,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(sub.tier.displayName, style: RecallrTypography.headlineMedium),
+                        Text(sub.tier.displayName,
+                            style: RecallrTypography.headlineMedium),
                         RecallrSpacing.gapSm,
                         RecallrBadge(
                           text: sub.status.toUpperCase(),
-                          variant: isPro || isExec ? RecallrBadgeVariant.verified : RecallrBadgeVariant.neutral,
+                          variant: isPro || isExec
+                              ? RecallrBadgeVariant.verified
+                              : RecallrBadgeVariant.neutral,
                         ),
                       ],
                     ),
                     Text(
                       sub.tier.tagline,
-                      style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                      style: RecallrTypography.bodyMedium
+                          .copyWith(color: RecallrColors.textSecondary),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          RecallrSpacing.gapMd,
-          const Divider(color: RecallrColors.borderSubtle, height: 1),
-          RecallrSpacing.gapMd,
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Current Allowance',
-                style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textTertiary),
-              ),
-              Text(
-                '${sub.tier.monthlyCreditsTotal} AI queries · ${sub.tier.formattedStorageLimit} cloud storage',
-                style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textPrimary, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -329,7 +333,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Resource Quotas & Metering', style: RecallrTypography.titleMedium),
+        Text('Resource Quotas & Metering',
+            style: RecallrTypography.titleMedium),
         RecallrSpacing.gapSm,
 
         // AI Credits Gauge
@@ -342,15 +347,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.auto_awesome_rounded, size: 18, color: RecallrColors.aiElectricViolet),
+                      const Icon(Icons.auto_awesome_rounded,
+                          size: 18, color: RecallrColors.aiElectricViolet),
                       RecallrSpacing.gapSm,
-                      Text('AI Intelligence Credits', style: RecallrTypography.titleMedium),
+                      Text('AI Intelligence Credits',
+                          style: RecallrTypography.titleMedium),
                     ],
                   ),
                   Text(
                     '${sub.totalAvailableCredits} Available',
                     style: RecallrTypography.bodyMedium.copyWith(
-                      color: sub.hasAiCredits ? RecallrColors.aiElectricViolet : RecallrColors.crimsonAlert,
+                      color: sub.hasAiCredits
+                          ? RecallrColors.aiElectricViolet
+                          : RecallrColors.crimsonAlert,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -364,7 +373,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   minHeight: 8,
                   backgroundColor: RecallrColors.slateSurface,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    sub.totalAvailableCredits > 0 ? RecallrColors.aiElectricViolet : RecallrColors.crimsonAlert,
+                    sub.totalAvailableCredits > 0
+                        ? RecallrColors.aiElectricViolet
+                        : RecallrColors.crimsonAlert,
                   ),
                 ),
               ),
@@ -374,12 +385,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   Text(
                     '${sub.monthlyCreditsUsed} of ${sub.monthlyCreditsTotal} monthly credits used',
-                    style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                    style: RecallrTypography.bodyMedium
+                        .copyWith(color: RecallrColors.textSecondary),
                   ),
                   if (sub.purchasedCredits > 0)
                     Text(
                       '+${sub.purchasedCredits} non-expiring balance',
-                      style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.emeraldVerified, fontWeight: FontWeight.w600),
+                      style: RecallrTypography.bodyMedium.copyWith(
+                          color: RecallrColors.emeraldVerified,
+                          fontWeight: FontWeight.w600),
                     ),
                 ],
               ),
@@ -398,15 +412,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.cloud_queue_rounded, size: 18, color: RecallrColors.aiCyanHighlight),
+                      const Icon(Icons.cloud_queue_rounded,
+                          size: 18, color: RecallrColors.aiCyanHighlight),
                       RecallrSpacing.gapSm,
-                      Text('Cloud Media Storage', style: RecallrTypography.titleMedium),
+                      Text('Cloud Media Storage',
+                          style: RecallrTypography.titleMedium),
                     ],
                   ),
                   Text(
                     '${(sub.storageUsageRatio * 100).toStringAsFixed(1)}% Used',
                     style: RecallrTypography.bodyMedium.copyWith(
-                      color: sub.isStorageExceeded() ? RecallrColors.crimsonAlert : RecallrColors.textPrimary,
+                      color: sub.isStorageExceeded()
+                          ? RecallrColors.crimsonAlert
+                          : RecallrColors.textPrimary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -420,7 +438,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   minHeight: 8,
                   backgroundColor: RecallrColors.slateSurface,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    sub.isStorageExceeded() ? RecallrColors.crimsonAlert : RecallrColors.aiCyanHighlight,
+                    sub.isStorageExceeded()
+                        ? RecallrColors.crimsonAlert
+                        : RecallrColors.aiCyanHighlight,
                   ),
                 ),
               ),
@@ -430,11 +450,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   Text(
                     '${sub.formattedStorageUsed} of ${sub.formattedStorageLimit}',
-                    style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                    style: RecallrTypography.bodyMedium
+                        .copyWith(color: RecallrColors.textSecondary),
                   ),
                   Text(
                     'Cards & Voice Memos',
-                    style: RecallrTypography.labelSmall.copyWith(color: RecallrColors.textTertiary),
+                    style: RecallrTypography.labelSmall
+                        .copyWith(color: RecallrColors.textTertiary),
                   ),
                 ],
               ),
@@ -452,7 +474,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         Text('Micro Credit Top-Ups', style: RecallrTypography.titleMedium),
         Text(
           'Credits never expire · Use anytime when monthly plan credits run out',
-          style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+          style: RecallrTypography.bodyMedium
+              .copyWith(color: RecallrColors.textSecondary),
         ),
         RecallrSpacing.gapMd,
         LayoutBuilder(
@@ -492,7 +515,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         color: RecallrColors.charcoalCard,
         borderRadius: RecallrRadii.radiusLg,
         border: Border.all(
-          color: pack.isPopular ? RecallrColors.aiElectricViolet.withAlpha(150) : RecallrColors.borderSubtle,
+          color: pack.isPopular
+              ? RecallrColors.aiElectricViolet.withAlpha(150)
+              : RecallrColors.borderSubtle,
           width: pack.isPopular ? 1.5 : 1.0,
         ),
       ),
@@ -506,7 +531,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               decoration: BoxDecoration(
                 color: RecallrColors.aiElectricViolet.withAlpha(40),
                 borderRadius: RecallrRadii.radiusPill,
-                border: Border.all(color: RecallrColors.aiElectricViolet.withAlpha(100)),
+                border: Border.all(
+                    color: RecallrColors.aiElectricViolet.withAlpha(100)),
               ),
               child: Text(
                 'POPULAR',
@@ -519,17 +545,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ),
             RecallrSpacing.gapSm,
           ],
-          Text(pack.title, style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
-          Text(pack.subtitle, style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary)),
+          Text(pack.title,
+              style: RecallrTypography.titleMedium
+                  .copyWith(fontWeight: FontWeight.w700)),
+          Text(pack.subtitle,
+              style: RecallrTypography.bodyMedium
+                  .copyWith(color: RecallrColors.textSecondary)),
           RecallrSpacing.gapMd,
           Text(
             sub.formatCreditPackPrice(pack),
-            style: RecallrTypography.headlineMedium.copyWith(fontWeight: FontWeight.w800),
+            style: RecallrTypography.headlineMedium
+                .copyWith(fontWeight: FontWeight.w800),
           ),
           RecallrSpacing.gapMd,
           RecallrButton(
             label: 'Buy Pack',
-            variant: pack.isPopular ? RecallrButtonVariant.primary : RecallrButtonVariant.secondary,
+            variant: pack.isPopular
+                ? RecallrButtonVariant.primary
+                : RecallrButtonVariant.secondary,
             leadingIcon: Icons.add_rounded,
             onPressed: () => _handleTopUp(pack),
           ),
@@ -555,7 +588,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 Text(
                   'Annual (Save 20%)',
                   style: RecallrTypography.bodyMedium.copyWith(
-                    color: _isAnnual ? RecallrColors.emeraldVerified : RecallrColors.textSecondary,
+                    color: _isAnnual
+                        ? RecallrColors.emeraldVerified
+                        : RecallrColors.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -612,7 +647,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         color: RecallrColors.charcoalCard,
         borderRadius: RecallrRadii.radiusLg,
         border: Border.all(
-          color: isHighlighted ? RecallrColors.aiCyanHighlight.withAlpha(160) : RecallrColors.borderSubtle,
+          color: isHighlighted
+              ? RecallrColors.aiCyanHighlight.withAlpha(160)
+              : RecallrColors.borderSubtle,
           width: isHighlighted ? 1.5 : 1.0,
         ),
       ),
@@ -627,15 +664,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(tier.displayName, style: RecallrTypography.headlineMedium.copyWith(fontSize: 18, fontWeight: FontWeight.w700)),
-                    Text(tier.tagline, style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary)),
+                    Text(tier.displayName,
+                        style: RecallrTypography.headlineMedium.copyWith(
+                            fontSize: 18, fontWeight: FontWeight.w700)),
+                    Text(tier.tagline,
+                        style: RecallrTypography.bodyMedium
+                            .copyWith(color: RecallrColors.textSecondary)),
                   ],
                 ),
               ),
               RecallrSpacing.gapSm,
               Text(
                 sub.formatPrice(tier, annual: _isAnnual),
-                style: RecallrTypography.headlineMedium.copyWith(fontWeight: FontWeight.w800),
+                style: RecallrTypography.headlineMedium
+                    .copyWith(fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -646,7 +688,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_rounded, color: RecallrColors.emeraldVerified, size: 18),
+                    const Icon(Icons.check_rounded,
+                        color: RecallrColors.emeraldVerified, size: 18),
                     RecallrSpacing.gapSm,
                     Expanded(
                       child: Text(perk, style: RecallrTypography.bodyMedium),
@@ -657,8 +700,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           RecallrSpacing.gapLg,
           RecallrButton(
             label: isCurrent ? 'Active Plan' : 'Select ${tier.displayName}',
-            variant: isCurrent ? RecallrButtonVariant.secondary : RecallrButtonVariant.primary,
-            leadingIcon: isCurrent ? Icons.check_circle_rounded : Icons.arrow_forward_rounded,
+            variant: isCurrent
+                ? RecallrButtonVariant.secondary
+                : RecallrButtonVariant.primary,
+            leadingIcon: isCurrent
+                ? Icons.check_circle_rounded
+                : Icons.arrow_forward_rounded,
             onPressed: isCurrent ? null : () => _handleUpgrade(tier),
           ),
         ],

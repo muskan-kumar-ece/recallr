@@ -11,6 +11,9 @@ class SourceMemoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final personLine = [source.personName, source.personRole, source.company]
+        .where((value) => value.trim().isNotEmpty)
+        .join(' · ');
     return RecallrCard(
       onTap: source.targetRoute != null
           ? () => Navigator.of(context).pushNamed(source.targetRoute!)
@@ -19,7 +22,6 @@ class SourceMemoryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Top Row: Source Type + Verified Badge
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -46,8 +48,15 @@ class SourceMemoryCard extends StatelessWidget {
                   ],
                 ),
               ),
+              Text(
+                source.date,
+                style: RecallrTypography.monoMetadata.copyWith(
+                  color: RecallrColors.textTertiary,
+                  fontSize: 10.5,
+                ),
+              ),
               if (source.isVerified) ...[
-                RecallrSpacing.gapXs,
+                const SizedBox(width: 6.0),
                 const RecallrBadge(
                   text: 'VERIFIED',
                   variant: RecallrBadgeVariant.verified,
@@ -56,10 +65,8 @@ class SourceMemoryCard extends StatelessWidget {
             ],
           ),
           RecallrSpacing.gapSm,
-
-          // Person Info
           Text(
-            '${source.personName} · ${source.company}',
+            personLine.isEmpty ? 'Memory source' : personLine,
             style: RecallrTypography.titleMedium.copyWith(
               fontWeight: FontWeight.w600,
               fontSize: 13.0,
@@ -68,65 +75,27 @@ class SourceMemoryCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2.0),
-          Row(
-            children: [
-              if (source.eventOrLocation != null) ...[
-                const Icon(
-                  Icons.place_outlined,
-                  size: 12.0,
-                  color: RecallrColors.textTertiary,
-                ),
-                const SizedBox(width: 3.0),
-                Expanded(
-                  child: Text(
-                    source.eventOrLocation!,
-                    style: RecallrTypography.bodyMedium.copyWith(
-                      color: RecallrColors.textTertiary,
-                      fontSize: 11.0,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 6.0),
-                Text(
-                  '•',
-                  style: RecallrTypography.monoMetadata.copyWith(
-                    color: RecallrColors.textTertiary,
-                    fontSize: 10.0,
-                  ),
-                ),
-                const SizedBox(width: 6.0),
-              ],
-              Text(
-                source.date,
-                style: RecallrTypography.monoMetadata.copyWith(
-                  color: RecallrColors.textTertiary,
-                  fontSize: 10.5,
-                ),
+          if (source.eventOrLocation?.trim().isNotEmpty == true) ...[
+            const SizedBox(height: 2.0),
+            Text(
+              source.eventOrLocation!,
+              style: RecallrTypography.labelSmall.copyWith(
+                color: RecallrColors.textTertiary,
               ),
-            ],
-          ),
-          RecallrSpacing.gapSm,
-
-          // Excerpt Box
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-            decoration: BoxDecoration(
-              color: RecallrColors.slateSurface,
-              borderRadius: RecallrRadii.radiusSm,
-              border: Border.all(color: RecallrColors.borderSubtle, width: 1.0),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            child: Text(
-              '"${source.excerpt}"',
-              style: RecallrTypography.bodyMedium.copyWith(
-                color: RecallrColors.textPrimary,
-                fontSize: 12.0,
-                fontStyle: FontStyle.italic,
-                height: 1.4,
-              ),
+          ],
+          const SizedBox(height: 6.0),
+          Text(
+            source.excerpt,
+            style: RecallrTypography.bodyMedium.copyWith(
+              color: RecallrColors.textSecondary,
+              fontSize: 12.0,
+              height: 1.35,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

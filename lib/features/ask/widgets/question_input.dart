@@ -98,7 +98,9 @@ class _QuestionInputState extends State<QuestionInput> {
             cursorColor: RecallrColors.aiCyanHighlight,
             textInputAction: TextInputAction.send,
             onSubmitted: (val) {
-              if (val.trim().isNotEmpty && widget.onSubmitted != null && !widget.isLoading) {
+              if (val.trim().isNotEmpty &&
+                  widget.onSubmitted != null &&
+                  !widget.isLoading) {
                 widget.onSubmitted!(val.trim());
               }
             },
@@ -124,15 +126,18 @@ class _QuestionInputState extends State<QuestionInput> {
                 children: [
                   if (hasText)
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18.0, color: RecallrColors.textSecondary),
+                      icon: const Icon(Icons.close_rounded,
+                          size: 18.0, color: RecallrColors.textSecondary),
                       tooltip: 'Clear input',
                       onPressed: widget.onClear,
                     ),
-                  IconButton(
-                    icon: const Icon(Icons.mic_none_rounded, size: 18.0, color: RecallrColors.textSecondary),
-                    tooltip: 'Voice memo query',
-                    onPressed: widget.onVoiceTrigger,
-                  ),
+                  if (widget.onVoiceTrigger != null)
+                    IconButton(
+                      icon: const Icon(Icons.mic_none_rounded,
+                          size: 18.0, color: RecallrColors.textSecondary),
+                      tooltip: 'Voice memo query',
+                      onPressed: widget.onVoiceTrigger,
+                    ),
                 ],
               ),
               RecallrSpacing.gapXs,

@@ -78,6 +78,7 @@ class CallableFunctionsGeminiAiProvider implements GeminiAiProvider {
           finishReason: data['finishReason'] as String?,
           promptTokens: data['promptTokens'] as int?,
           candidateTokens: data['candidateTokens'] as int?,
+          remainingCredits: (data['remainingCredits'] as num?)?.toInt(),
         );
       } on FirebaseFunctionsException catch (e, st) {
         // Map Firebase Cloud Functions error codes into standard Recallr GeminiProviderException hierarchy

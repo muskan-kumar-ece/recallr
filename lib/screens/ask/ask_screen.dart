@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/di/recallr_dependencies.dart';
 import '../../core/security/security.dart';
+import '../../core/state/recallr_credit_balance.dart';
 import '../../core/theme/theme.dart';
 import '../../core/utils/share_formatter.dart';
 import '../../core/widgets/share_bottom_sheet.dart';
@@ -47,7 +48,8 @@ class AskScreen extends StatefulWidget {
     this.initialRecentQuestions,
   });
 
-  static const List<String> defaultSuggestions = MockMemoryEngine.suggestedQuestions;
+  static const List<String> defaultSuggestions =
+      MockMemoryEngine.suggestedQuestions;
 
   @override
   State<AskScreen> createState() => _AskScreenState();
@@ -58,6 +60,7 @@ class _AskScreenState extends State<AskScreen> {
   late bool _isLoading;
   late bool _isError;
   String? _activeErrorMessage;
+  String _lastSubmittedQuestion = '';
   AiErrorType _activeErrorType = AiErrorType.none;
   bool _hasQueried = false;
   GroundedAnswer? _currentAnswer;
@@ -71,10 +74,12 @@ class _AskScreenState extends State<AskScreen> {
     _isError = widget.isError;
     _recentQuestions = widget.initialRecentQuestions != null
         ? List.from(widget.initialRecentQuestions!)
-        : (RecallrDependencies.instance.memoryRetrievalRepository is FirestoreMemoryRetrievalRepository
+        : (RecallrDependencies.instance.memoryRetrievalRepository
+                is FirestoreMemoryRetrievalRepository
             ? <String>[]
             : List.from(MockMemoryEngine.recentQuestions));
-    _questionController = TextEditingController(text: widget.initialQuery ?? '');
+    _questionController =
+        TextEditingController(text: widget.initialQuery ?? '');
 
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -89,7 +94,10 @@ class _AskScreenState extends State<AskScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is String && args.isNotEmpty && !_hasQueried && _questionController.text.isEmpty) {
+    if (args is String &&
+        args.isNotEmpty &&
+        !_hasQueried &&
+        _questionController.text.isEmpty) {
       _questionController.text = args;
       _performAsk(args);
     }
@@ -105,7 +113,8 @@ class _AskScreenState extends State<AskScreen> {
         _isLoading = widget.isLoading;
         _isError = widget.isError;
       });
-      if (widget.initialQuery != null && widget.initialQuery != oldWidget.initialQuery) {
+      if (widget.initialQuery != null &&
+          widget.initialQuery != oldWidget.initialQuery) {
         _performAsk(widget.initialQuery!);
       }
     }
@@ -123,7 +132,8 @@ class _AskScreenState extends State<AskScreen> {
     if (cleanQuestion.isEmpty) return;
 
     setState(() {
-      _questionController.text = cleanQuestion;
+      _lastSubmittedQuestion = cleanQuestion;
+      _questionController.clear();
       _isLoading = true;
       _isError = false;
       _activeErrorMessage = null;
@@ -131,24 +141,16 @@ class _AskScreenState extends State<AskScreen> {
       _hasQueried = true;
     });
 
-    if (!_recentQuestions.contains(cleanQuestion)) {
-      _recentQuestions.insert(0, cleanQuestion);
-      if (_recentQuestions.length > 5) {
-        _recentQuestions.removeLast();
-      }
-    }
-
     GroundedAnswer? result;
     AiErrorType errorType = AiErrorType.none;
     String? errorMessage;
 
     try {
       final answerService = context.dependencies.aiAnswerService;
-      
+
       // Pass bounded recent conversation turns (last 5 turns)
-      final historyTurns = _conversationHistory
-          .where((turn) => turn.answer != null)
-          .toList();
+      final historyTurns =
+          _conversationHistory.where((turn) => turn.answer != null).toList();
       final boundedHistory = historyTurns.length > 5
           ? historyTurns.sublist(historyTurns.length - 5)
           : historyTurns;
@@ -168,6 +170,7 @@ class _AskScreenState extends State<AskScreen> {
           conversationHistory: turnsPayload.isNotEmpty ? turnsPayload : null,
         ),
       );
+      RecallrCreditBalance.updateFromAnswer(aiAnswer.remainingCredits);
 
       if (aiAnswer.status == AiAnswerStatus.failed) {
         errorType = aiAnswer.errorType != AiErrorType.none
@@ -180,10 +183,14 @@ class _AskScreenState extends State<AskScreen> {
       } else {
         final sources = aiAnswer.evidence.map((ev) {
           IconData icon = Icons.psychology_outlined;
-          if (ev.sourceType == MemorySourceType.person) icon = Icons.person_outline;
-          if (ev.sourceType == MemorySourceType.activity) icon = Icons.event_note_outlined;
-          if (ev.sourceType == MemorySourceType.followUp) icon = Icons.task_alt_outlined;
-          if (ev.sourceType == MemorySourceType.capture) icon = Icons.document_scanner_outlined;
+          if (ev.sourceType == MemorySourceType.person)
+            icon = Icons.person_outline;
+          if (ev.sourceType == MemorySourceType.activity)
+            icon = Icons.event_note_outlined;
+          if (ev.sourceType == MemorySourceType.followUp)
+            icon = Icons.task_alt_outlined;
+          if (ev.sourceType == MemorySourceType.capture)
+            icon = Icons.document_scanner_outlined;
 
           return MemorySource(
             id: ev.sourceId,
@@ -206,7 +213,8 @@ class _AskScreenState extends State<AskScreen> {
           metadata: GroundingMetadata(
             memoryCount: aiAnswer.evidence.length,
             personCount: aiAnswer.mentionedPeople.length,
-            groundingSummary: 'Grounded in ${aiAnswer.evidence.length} memories',
+            groundingSummary:
+                'Grounded in ${aiAnswer.evidence.length} memories',
           ),
           relatedPeople: aiAnswer.mentionedPeople,
           sources: sources,
@@ -216,7 +224,12 @@ class _AskScreenState extends State<AskScreen> {
     } catch (e) {
       result = null;
       errorType = AiErrorType.networkUnavailable;
-      errorMessage = e.toString();
+      final rawError = e.toString().toLowerCase();
+      errorMessage = rawError.contains('credit') ||
+              rawError.contains('quota') ||
+              rawError.contains('resource-exhausted')
+          ? 'AI credits are unavailable. Check your balance or upgrade your plan.'
+          : errorType.defaultMessage;
     }
 
     if (mounted) {
@@ -226,7 +239,8 @@ class _AskScreenState extends State<AskScreen> {
         _activeErrorType = errorType;
         _activeErrorMessage = errorMessage;
 
-        if (errorType != AiErrorType.none && errorType != AiErrorType.insufficientEvidence) {
+        if (errorType != AiErrorType.none &&
+            errorType != AiErrorType.insufficientEvidence) {
           _isError = true;
         }
 
@@ -246,20 +260,22 @@ class _AskScreenState extends State<AskScreen> {
           });
         }
 
-        if (!_recentQuestions.contains(cleanQuestion)) {
+        if (result != null && !_recentQuestions.contains(cleanQuestion)) {
           _recentQuestions.insert(0, cleanQuestion);
           if (_recentQuestions.length > 5) {
             _recentQuestions.removeLast();
           }
         }
-        _conversationHistory.add(
-          ConversationTurn(
-            id: 'turn_${DateTime.now().millisecondsSinceEpoch}',
-            question: cleanQuestion,
-            answer: result,
-            timestamp: DateTime.now(),
-          ),
-        );
+        if (result != null) {
+          _conversationHistory.add(
+            ConversationTurn(
+              id: 'turn_${DateTime.now().millisecondsSinceEpoch}',
+              question: cleanQuestion,
+              answer: result,
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
         if (_conversationHistory.length > 20) {
           _conversationHistory.removeAt(0);
         }
@@ -292,22 +308,23 @@ class _AskScreenState extends State<AskScreen> {
   void _handleShareAnswer() {
     if (_currentAnswer == null) return;
     final text = ShareFormatter.formatAiAnswer(
-      query: _questionController.text,
+      query: _lastSubmittedQuestion,
       answer: _currentAnswer!.answerText,
       sources: _currentAnswer!.sources,
     );
     ShareBottomSheet.show(
       context,
       title: 'Share Grounded AI Answer',
-      subtitle: _questionController.text,
+      subtitle: _lastSubmittedQuestion,
       textSummary: text,
-      shareSubject: 'Recallr AI: ${_questionController.text}',
+      shareSubject: 'Recallr AI: $_lastSubmittedQuestion',
     );
   }
 
   void clearConversation() {
     setState(() {
       _questionController.clear();
+      _lastSubmittedQuestion = '';
       _hasQueried = false;
       _currentAnswer = null;
       _isLoading = false;
@@ -322,8 +339,8 @@ class _AskScreenState extends State<AskScreen> {
     if (widget.onRetry != null) {
       widget.onRetry!();
     } else {
-      if (_questionController.text.isNotEmpty) {
-        _performAsk(_questionController.text);
+      if (_lastSubmittedQuestion.isNotEmpty) {
+        _performAsk(_lastSubmittedQuestion);
       } else {
         setState(() {
           _isError = false;
@@ -340,9 +357,10 @@ class _AskScreenState extends State<AskScreen> {
       final defaultMsg = _activeErrorType != AiErrorType.none
           ? _activeErrorType.defaultMessage
           : "We couldn't query your memory network. Please check your connection and try again.";
-      final displayMsg = _activeErrorMessage != null && _activeErrorMessage!.isNotEmpty
-          ? _activeErrorMessage!
-          : defaultMsg;
+      final displayMsg =
+          _activeErrorMessage != null && _activeErrorMessage!.isNotEmpty
+              ? _activeErrorMessage!
+              : defaultMsg;
 
       return Center(
         child: Padding(
@@ -357,7 +375,8 @@ class _AskScreenState extends State<AskScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double maxWidth = constraints.maxWidth > 1100 ? 1040 : double.infinity;
+        final double maxWidth =
+            constraints.maxWidth > 1100 ? 1040 : double.infinity;
 
         return Center(
           child: ConstrainedBox(
@@ -370,7 +389,10 @@ class _AskScreenState extends State<AskScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const AskHeader(),
+                        AskHeader(
+                          hasActiveAnswer: _currentAnswer != null,
+                          onNewConversation: clearConversation,
+                        ),
                         RecallrSpacing.gapLg,
                         if (_isLoading) ...[
                           const AskLoadingState(),
@@ -380,7 +402,7 @@ class _AskScreenState extends State<AskScreen> {
                             GroundedAnswerCard(
                               answer: _currentAnswer!,
                               onFollowUpSelected: _performAsk,
-                              onNewQuestion: clearConversation,
+                              onNewQuestion: null,
                               onShare: _handleShareAnswer,
                             ),
                             RecallrSpacing.gapLg,
@@ -391,12 +413,13 @@ class _AskScreenState extends State<AskScreen> {
                               RecallrSpacing.gapLg,
                             ],
                             if (_currentAnswer!.sources.isNotEmpty) ...[
-                              MemorySourcesSection(sources: _currentAnswer!.sources),
+                              MemorySourcesSection(
+                                  sources: _currentAnswer!.sources),
                               RecallrSpacing.gapLg,
                             ],
                           ] else ...[
                             AskNoAnswerState(
-                              question: _questionController.text,
+                              question: _lastSubmittedQuestion,
                               onSuggestionSelected: _performAsk,
                             ),
                             RecallrSpacing.gapLg,
@@ -404,19 +427,22 @@ class _AskScreenState extends State<AskScreen> {
                         ] else ...[
                           if (widget.isEmpty) ...[
                             AskEmptyState(
-                              onCapture: widget.onCaptureFirstEncounter ?? () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  backgroundColor: Colors.transparent,
-                                  builder: (context) => CaptureModal(),
-                                );
-                              },
+                              onCapture: widget.onCaptureFirstEncounter ??
+                                  () {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) => CaptureModal(),
+                                    );
+                                  },
                             ),
                           ] else ...[
                             SuggestedQuestions(
                               suggestions: widget.initialSuggestions ??
-                                  (RecallrDependencies.instance.memoryRetrievalRepository is FirestoreMemoryRetrievalRepository
+                                  (RecallrDependencies.instance
+                                              .memoryRetrievalRepository
+                                          is FirestoreMemoryRetrievalRepository
                                       ? const [
                                           'Who did I meet recently?',
                                           'What commitments did I make this week?',

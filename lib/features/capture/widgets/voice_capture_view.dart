@@ -5,6 +5,7 @@ import '../../../core/widgets/widgets.dart';
 /// Voice memo recording simulation view.
 class VoiceCaptureView extends StatelessWidget {
   final bool isRecording;
+  final bool hasRecording;
   final String durationText;
   final VoidCallback onToggleRecording;
   final VoidCallback onProcessVoice;
@@ -13,6 +14,7 @@ class VoiceCaptureView extends StatelessWidget {
   const VoiceCaptureView({
     super.key,
     required this.isRecording,
+    this.hasRecording = false,
     required this.durationText,
     required this.onToggleRecording,
     required this.onProcessVoice,
@@ -32,7 +34,9 @@ class VoiceCaptureView extends StatelessWidget {
             color: RecallrColors.charcoalCard,
             borderRadius: RecallrRadii.radiusMd,
             border: Border.all(
-              color: isRecording ? RecallrColors.aiElectricViolet : RecallrColors.borderSubtle,
+              color: isRecording
+                  ? RecallrColors.aiElectricViolet
+                  : RecallrColors.borderSubtle,
               width: isRecording ? 1.5 : 1.0,
             ),
           ),
@@ -49,20 +53,26 @@ class VoiceCaptureView extends StatelessWidget {
                         ? RecallrColors.aiElectricViolet.withAlpha(40)
                         : RecallrColors.slateSurface,
                     border: Border.all(
-                      color: isRecording ? RecallrColors.aiElectricViolet : RecallrColors.borderSubtle,
+                      color: isRecording
+                          ? RecallrColors.aiElectricViolet
+                          : RecallrColors.borderSubtle,
                       width: 2.0,
                     ),
                   ),
                   child: Icon(
                     isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
                     size: 32.0,
-                    color: isRecording ? RecallrColors.aiElectricViolet : RecallrColors.textPrimary,
+                    color: isRecording
+                        ? RecallrColors.aiElectricViolet
+                        : RecallrColors.textPrimary,
                   ),
                 ),
               ),
               RecallrSpacing.gapMd,
               Text(
-                isRecording ? 'Recording conversation takeaway...' : 'What would you like Recallr to remember?',
+                isRecording
+                    ? 'Recording conversation takeaway...'
+                    : 'What would you like Recallr to remember?',
                 style: RecallrTypography.titleMedium.copyWith(
                   fontWeight: FontWeight.w600,
                   fontSize: 14.0,
@@ -73,7 +83,9 @@ class VoiceCaptureView extends StatelessWidget {
               Text(
                 durationText,
                 style: RecallrTypography.monoMetadata.copyWith(
-                  color: isRecording ? RecallrColors.aiCyanHighlight : RecallrColors.textTertiary,
+                  color: isRecording
+                      ? RecallrColors.aiCyanHighlight
+                      : RecallrColors.textTertiary,
                   fontSize: 15.0,
                   fontWeight: FontWeight.w600,
                 ),
@@ -96,10 +108,18 @@ class VoiceCaptureView extends StatelessWidget {
             RecallrSpacing.gapSm,
             Expanded(
               child: RecallrButton(
-                label: isRecording ? 'Finish & Process' : 'Start Recording',
+                label: isRecording
+                    ? 'Finish & Process'
+                    : hasRecording
+                        ? 'Review Recording'
+                        : 'Start Recording',
                 variant: RecallrButtonVariant.primary,
-                leadingIcon: isRecording ? Icons.check_circle_outline_rounded : Icons.fiber_manual_record_rounded,
-                onPressed: isRecording ? onProcessVoice : onToggleRecording,
+                leadingIcon: isRecording
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.fiber_manual_record_rounded,
+                onPressed: isRecording || hasRecording
+                    ? onProcessVoice
+                    : onToggleRecording,
               ),
             ),
           ],

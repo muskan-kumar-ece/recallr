@@ -77,34 +77,11 @@ class GroundedAnswerCard extends StatelessWidget {
           ),
           RecallrSpacing.gapSm,
 
-          // Grounding Metadata Summary
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-            decoration: BoxDecoration(
-              color: RecallrColors.slateSurface,
-              borderRadius: RecallrRadii.radiusSm,
-              border: Border.all(color: RecallrColors.borderSubtle, width: 1.0),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.verified_user_outlined,
-                  size: 13.0,
-                  color: RecallrColors.emeraldVerified,
-                ),
-                const SizedBox(width: 6.0),
-                Expanded(
-                  child: Text(
-                    answer.metadata.groundingSummary,
-                    style: RecallrTypography.labelSmall.copyWith(
-                      color: RecallrColors.textSecondary,
-                      fontSize: 11.0,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+          Text(
+            'Based on ${answer.metadata.memoryCount} ${answer.metadata.memoryCount == 1 ? 'memory' : 'memories'}',
+            style: RecallrTypography.labelSmall.copyWith(
+              color: RecallrColors.textTertiary,
+              fontSize: 11.0,
             ),
           ),
           RecallrSpacing.gapMd,
@@ -124,7 +101,8 @@ class GroundedAnswerCard extends StatelessWidget {
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: onShare,
-                icon: const Icon(Icons.share_outlined, size: 14.0, color: RecallrColors.aiCyanHighlight),
+                icon: const Icon(Icons.share_outlined,
+                    size: 14.0, color: RecallrColors.aiCyanHighlight),
                 label: Text(
                   'Share Answer',
                   style: RecallrTypography.labelSmall.copyWith(
@@ -133,7 +111,8 @@ class GroundedAnswerCard extends StatelessWidget {
                   ),
                 ),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),

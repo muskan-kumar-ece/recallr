@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/widgets.dart';
+import '../../repositories/library_repository.dart';
+import '../../data/firestore/firestore_library_repository.dart';
+import '../../data/mock/memory_library_repository.dart';
 import '../../data/firestore/firestore_activity_repository.dart';
 import '../../data/firestore/firestore_capture_processing_repository.dart';
 import '../../data/firestore/firestore_capture_repository.dart';
@@ -91,6 +94,7 @@ import '../observability/observability.dart';
 /// Central dependency container for Recallr repositories and hardware services.
 /// Decouples UI screens from concrete Firestore/ML/Mock implementations.
 class RecallrDependencies {
+  final LibraryRepository libraryRepository;
   final PeopleRepository peopleRepository;
   final PersonDetailRepository personDetailRepository;
   final ActivityRepository activityRepository;
@@ -118,10 +122,12 @@ class RecallrDependencies {
   final RelationshipStrengthCalculator relationshipStrengthCalculator;
   final RelationshipStateClassifier relationshipStateClassifier;
   final RelationshipIntelligenceService relationshipIntelligenceService;
-  final RelationshipActionPriorityCalculator relationshipActionPriorityCalculator;
+  final RelationshipActionPriorityCalculator
+      relationshipActionPriorityCalculator;
   final RelationshipActionEngine relationshipActionEngine;
   final RelationshipAttentionCalculator relationshipAttentionCalculator;
-  final RelationshipAttentionPriorityCalculator relationshipAttentionPriorityCalculator;
+  final RelationshipAttentionPriorityCalculator
+      relationshipAttentionPriorityCalculator;
   final RelationshipAttentionEngine relationshipAttentionEngine;
   final NetworkHealthCalculator networkHealthCalculator;
   final NetworkTrendCalculator networkTrendCalculator;
@@ -135,9 +141,12 @@ class RecallrDependencies {
   final NetworkConnectionCalculator networkConnectionCalculator;
   final NetworkClusterDetector networkClusterDetector;
   final NetworkPatternEngine networkPatternEngine;
-  final NetworkConnectionIntelligenceService networkConnectionIntelligenceService;
-  final UnifiedRelationshipIntelligenceService unifiedRelationshipIntelligenceService;
-  final RelationshipIntelligenceConsistencyValidator relationshipIntelligenceConsistencyValidator;
+  final NetworkConnectionIntelligenceService
+      networkConnectionIntelligenceService;
+  final UnifiedRelationshipIntelligenceService
+      unifiedRelationshipIntelligenceService;
+  final RelationshipIntelligenceConsistencyValidator
+      relationshipIntelligenceConsistencyValidator;
   final UnifiedRelationshipRanking unifiedRelationshipRanking;
   final CrashReportingService crashReportingService;
   final TelemetryService telemetryService;
@@ -146,6 +155,7 @@ class RecallrDependencies {
   final PaymentService paymentService;
 
   RecallrDependencies({
+    LibraryRepository? libraryRepository,
     required this.peopleRepository,
     required this.personDetailRepository,
     required this.activityRepository,
@@ -178,7 +188,8 @@ class RecallrDependencies {
     RelationshipActionPriorityCalculator? relationshipActionPriorityCalculator,
     RelationshipActionEngine? relationshipActionEngine,
     RelationshipAttentionCalculator? relationshipAttentionCalculator,
-    RelationshipAttentionPriorityCalculator? relationshipAttentionPriorityCalculator,
+    RelationshipAttentionPriorityCalculator?
+        relationshipAttentionPriorityCalculator,
     RelationshipAttentionEngine? relationshipAttentionEngine,
     NetworkHealthCalculator? networkHealthCalculator,
     NetworkTrendCalculator? networkTrendCalculator,
@@ -193,21 +204,32 @@ class RecallrDependencies {
     NetworkClusterDetector? networkClusterDetector,
     NetworkPatternEngine? networkPatternEngine,
     NetworkConnectionIntelligenceService? networkConnectionIntelligenceService,
-    UnifiedRelationshipIntelligenceService? unifiedRelationshipIntelligenceService,
-    RelationshipIntelligenceConsistencyValidator? relationshipIntelligenceConsistencyValidator,
+    UnifiedRelationshipIntelligenceService?
+        unifiedRelationshipIntelligenceService,
+    RelationshipIntelligenceConsistencyValidator?
+        relationshipIntelligenceConsistencyValidator,
     UnifiedRelationshipRanking? unifiedRelationshipRanking,
     CrashReportingService? crashReportingService,
     TelemetryService? telemetryService,
     PerformanceTracker? performanceTracker,
-  })  : crashReportingService = crashReportingService ?? ProductionCrashReportingService(),
+  })  : libraryRepository = libraryRepository ?? MemoryLibraryRepository(),
+        crashReportingService =
+            crashReportingService ?? ProductionCrashReportingService(),
         telemetryService = telemetryService ?? ProductionTelemetryService(),
         performanceTracker = performanceTracker ??
-            PerformanceTracker(telemetryService ?? ProductionTelemetryService()),
-        subscriptionRepository = subscriptionRepository ?? MockSubscriptionRepository(),
-        paymentService = paymentService ?? MockPaymentService(subscriptionRepository: subscriptionRepository ?? MockSubscriptionRepository()),
-        mediaStorageRepository = mediaStorageRepository ?? MockMediaStorageRepository(),
+            PerformanceTracker(
+                telemetryService ?? ProductionTelemetryService()),
+        subscriptionRepository =
+            subscriptionRepository ?? MockSubscriptionRepository(),
+        paymentService = paymentService ??
+            MockPaymentService(
+                subscriptionRepository:
+                    subscriptionRepository ?? MockSubscriptionRepository()),
+        mediaStorageRepository =
+            mediaStorageRepository ?? MockMediaStorageRepository(),
         mediaPickerService = mediaPickerService ?? MockMediaPickerService(),
-        audioRecorderService = audioRecorderService ?? MockAudioRecorderService(),
+        audioRecorderService =
+            audioRecorderService ?? MockAudioRecorderService(),
         captureProcessingRepository =
             captureProcessingRepository ?? MockCaptureProcessingRepository(),
         captureProcessingService =
@@ -227,54 +249,70 @@ class RecallrDependencies {
               followUpRepository: followUpRepository,
               captureRepository: captureRepository,
             ),
-        memoryRetrievalService = memoryRetrievalService ??
-            MockMemoryRetrievalService(),
-        answerGroundingService = answerGroundingService ?? const AnswerGroundingService(),
-        geminiAiConfiguration = geminiAiConfiguration ?? const GeminiAiConfiguration(),
+        memoryRetrievalService =
+            memoryRetrievalService ?? MockMemoryRetrievalService(),
+        answerGroundingService =
+            answerGroundingService ?? const AnswerGroundingService(),
+        geminiAiConfiguration =
+            geminiAiConfiguration ?? const GeminiAiConfiguration(),
         geminiAiProvider = geminiAiProvider ?? MockGeminiAiProvider(),
-        geminiPromptBuilder = geminiPromptBuilder ?? const GeminiPromptBuilder(),
-        geminiResponseParser = geminiResponseParser ?? const GeminiResponseParser(),
+        geminiPromptBuilder =
+            geminiPromptBuilder ?? const GeminiPromptBuilder(),
+        geminiResponseParser =
+            geminiResponseParser ?? const GeminiResponseParser(),
         groundedAnswerValidator = groundedAnswerValidator ??
             GroundedAnswerValidator(
-              groundingService: answerGroundingService ?? const AnswerGroundingService(),
+              groundingService:
+                  answerGroundingService ?? const AnswerGroundingService(),
             ),
         aiAnswerGenerator = aiAnswerGenerator ??
             GeminiGroundedAnswerGenerator(
-              configuration: geminiAiConfiguration ?? const GeminiAiConfiguration(),
+              configuration:
+                  geminiAiConfiguration ?? const GeminiAiConfiguration(),
               provider: geminiAiProvider ?? MockGeminiAiProvider(),
               promptBuilder: geminiPromptBuilder ?? const GeminiPromptBuilder(),
-              responseParser: geminiResponseParser ?? const GeminiResponseParser(),
+              responseParser:
+                  geminiResponseParser ?? const GeminiResponseParser(),
               validator: groundedAnswerValidator ??
                   GroundedAnswerValidator(
-                    groundingService: answerGroundingService ?? const AnswerGroundingService(),
+                    groundingService: answerGroundingService ??
+                        const AnswerGroundingService(),
                   ),
               fallbackGenerator: DeterministicAiAnswerGenerator(
-                groundingService: answerGroundingService ?? const AnswerGroundingService(),
+                groundingService:
+                    answerGroundingService ?? const AnswerGroundingService(),
               ),
             ),
         aiAnswerService = aiAnswerService ??
             DeterministicAiAnswerService(
-              retrievalService: memoryRetrievalService ?? MockMemoryRetrievalService(),
+              retrievalService:
+                  memoryRetrievalService ?? MockMemoryRetrievalService(),
               generator: aiAnswerGenerator ??
                   GeminiGroundedAnswerGenerator(
-                    configuration: geminiAiConfiguration ?? const GeminiAiConfiguration(),
+                    configuration:
+                        geminiAiConfiguration ?? const GeminiAiConfiguration(),
                     provider: geminiAiProvider ?? MockGeminiAiProvider(),
-                    promptBuilder: geminiPromptBuilder ?? const GeminiPromptBuilder(),
-                    responseParser: geminiResponseParser ?? const GeminiResponseParser(),
+                    promptBuilder:
+                        geminiPromptBuilder ?? const GeminiPromptBuilder(),
+                    responseParser:
+                        geminiResponseParser ?? const GeminiResponseParser(),
                     validator: groundedAnswerValidator ??
                         GroundedAnswerValidator(
-                          groundingService: answerGroundingService ?? const AnswerGroundingService(),
+                          groundingService: answerGroundingService ??
+                              const AnswerGroundingService(),
                         ),
                     fallbackGenerator: DeterministicAiAnswerGenerator(
-                      groundingService: answerGroundingService ?? const AnswerGroundingService(),
+                      groundingService: answerGroundingService ??
+                          const AnswerGroundingService(),
                     ),
                   ),
-              groundingService: answerGroundingService ?? const AnswerGroundingService(),
+              groundingService:
+                  answerGroundingService ?? const AnswerGroundingService(),
             ),
-        relationshipStrengthCalculator =
-            relationshipStrengthCalculator ?? const DeterministicRelationshipStrengthCalculator(),
-        relationshipStateClassifier =
-            relationshipStateClassifier ?? const DeterministicRelationshipStateClassifier(),
+        relationshipStrengthCalculator = relationshipStrengthCalculator ??
+            const DeterministicRelationshipStrengthCalculator(),
+        relationshipStateClassifier = relationshipStateClassifier ??
+            const DeterministicRelationshipStateClassifier(),
         relationshipIntelligenceService = relationshipIntelligenceService ??
             DeterministicRelationshipIntelligenceService(
               personDetailRepository: personDetailRepository,
@@ -286,8 +324,9 @@ class RecallrDependencies {
               stateClassifier: relationshipStateClassifier ??
                   const DeterministicRelationshipStateClassifier(),
             ),
-        relationshipActionPriorityCalculator = relationshipActionPriorityCalculator ??
-            const DeterministicRelationshipActionPriorityCalculator(),
+        relationshipActionPriorityCalculator =
+            relationshipActionPriorityCalculator ??
+                const DeterministicRelationshipActionPriorityCalculator(),
         relationshipActionEngine = relationshipActionEngine ??
             DeterministicRelationshipActionEngine(
               priorityCalculator: relationshipActionPriorityCalculator ??
@@ -295,8 +334,9 @@ class RecallrDependencies {
             ),
         relationshipAttentionCalculator = relationshipAttentionCalculator ??
             const DeterministicRelationshipAttentionCalculator(),
-        relationshipAttentionPriorityCalculator = relationshipAttentionPriorityCalculator ??
-            const DeterministicRelationshipAttentionPriorityCalculator(),
+        relationshipAttentionPriorityCalculator =
+            relationshipAttentionPriorityCalculator ??
+                const DeterministicRelationshipAttentionPriorityCalculator(),
         relationshipAttentionEngine = relationshipAttentionEngine ??
             DeterministicRelationshipAttentionEngine(
               calculator: relationshipAttentionCalculator ??
@@ -319,13 +359,14 @@ class RecallrDependencies {
               activityRepository: activityRepository,
               followUpRepository: followUpRepository,
               captureRepository: captureRepository,
-              relationshipIntelligenceService: relationshipIntelligenceService ??
-                  DeterministicRelationshipIntelligenceService(
-                    personDetailRepository: personDetailRepository,
-                    activityRepository: activityRepository,
-                    followUpRepository: followUpRepository,
-                    captureRepository: captureRepository,
-                  ),
+              relationshipIntelligenceService:
+                  relationshipIntelligenceService ??
+                      DeterministicRelationshipIntelligenceService(
+                        personDetailRepository: personDetailRepository,
+                        activityRepository: activityRepository,
+                        followUpRepository: followUpRepository,
+                        captureRepository: captureRepository,
+                      ),
               relationshipAttentionEngine: relationshipAttentionEngine ??
                   const DeterministicRelationshipAttentionEngine(),
               healthCalculator: networkHealthCalculator ??
@@ -356,13 +397,14 @@ class RecallrDependencies {
               personDetailRepository: personDetailRepository,
               activityRepository: activityRepository,
               followUpRepository: followUpRepository,
-              relationshipIntelligenceService: relationshipIntelligenceService ??
-                  DeterministicRelationshipIntelligenceService(
-                    personDetailRepository: personDetailRepository,
-                    activityRepository: activityRepository,
-                    followUpRepository: followUpRepository,
-                    captureRepository: captureRepository,
-                  ),
+              relationshipIntelligenceService:
+                  relationshipIntelligenceService ??
+                      DeterministicRelationshipIntelligenceService(
+                        personDetailRepository: personDetailRepository,
+                        activityRepository: activityRepository,
+                        followUpRepository: followUpRepository,
+                        captureRepository: captureRepository,
+                      ),
               momentumEngine: relationshipMomentumEngine ??
                   const DeterministicRelationshipMomentumEngine(),
             ),
@@ -370,50 +412,56 @@ class RecallrDependencies {
             const DeterministicNetworkConnectionCalculator(),
         networkClusterDetector = networkClusterDetector ??
             const DeterministicNetworkClusterDetector(),
-        networkPatternEngine = networkPatternEngine ??
-            const DeterministicNetworkPatternEngine(),
-        networkConnectionIntelligenceService = networkConnectionIntelligenceService ??
-            DeterministicNetworkConnectionIntelligenceService(
-              peopleRepository: peopleRepository,
-              personDetailRepository: personDetailRepository,
-              activityRepository: activityRepository,
-              captureRepository: captureRepository,
-              relationshipIntelligenceService: relationshipIntelligenceService,
-              momentumEngine: relationshipMomentumEngine,
-              connectionCalculator: networkConnectionCalculator ??
-                  const DeterministicNetworkConnectionCalculator(),
-              clusterDetector: networkClusterDetector ??
-                  const DeterministicNetworkClusterDetector(),
-              patternEngine: networkPatternEngine ??
-                  const DeterministicNetworkPatternEngine(),
-            ),
-        relationshipIntelligenceConsistencyValidator = relationshipIntelligenceConsistencyValidator ??
-            const RelationshipIntelligenceConsistencyValidator(),
-        unifiedRelationshipRanking = unifiedRelationshipRanking ??
-            const UnifiedRelationshipRanking(),
-        unifiedRelationshipIntelligenceService = unifiedRelationshipIntelligenceService ??
-            DeterministicUnifiedRelationshipIntelligenceService(
-              peopleRepository: peopleRepository,
-              personDetailRepository: personDetailRepository,
-              activityRepository: activityRepository,
-              followUpRepository: followUpRepository,
-              captureRepository: captureRepository,
-              strengthCalculator: relationshipStrengthCalculator ??
-                  const DeterministicRelationshipStrengthCalculator(),
-              stateClassifier: relationshipStateClassifier ??
-                  const DeterministicRelationshipStateClassifier(),
-              actionEngine: relationshipActionEngine ??
-                  const DeterministicRelationshipActionEngine(),
-              attentionEngine: relationshipAttentionEngine ??
-                  const DeterministicRelationshipAttentionEngine(),
-              momentumEngine: relationshipMomentumEngine ??
-                  const DeterministicRelationshipMomentumEngine(),
-              networkConnectionService: networkConnectionIntelligenceService,
-              networkIntelligenceService: networkIntelligenceService,
-              ranking: unifiedRelationshipRanking ?? const UnifiedRelationshipRanking(),
-              validator: relationshipIntelligenceConsistencyValidator ??
-                  const RelationshipIntelligenceConsistencyValidator(),
-            );
+        networkPatternEngine =
+            networkPatternEngine ?? const DeterministicNetworkPatternEngine(),
+        networkConnectionIntelligenceService =
+            networkConnectionIntelligenceService ??
+                DeterministicNetworkConnectionIntelligenceService(
+                  peopleRepository: peopleRepository,
+                  personDetailRepository: personDetailRepository,
+                  activityRepository: activityRepository,
+                  captureRepository: captureRepository,
+                  relationshipIntelligenceService:
+                      relationshipIntelligenceService,
+                  momentumEngine: relationshipMomentumEngine,
+                  connectionCalculator: networkConnectionCalculator ??
+                      const DeterministicNetworkConnectionCalculator(),
+                  clusterDetector: networkClusterDetector ??
+                      const DeterministicNetworkClusterDetector(),
+                  patternEngine: networkPatternEngine ??
+                      const DeterministicNetworkPatternEngine(),
+                ),
+        relationshipIntelligenceConsistencyValidator =
+            relationshipIntelligenceConsistencyValidator ??
+                const RelationshipIntelligenceConsistencyValidator(),
+        unifiedRelationshipRanking =
+            unifiedRelationshipRanking ?? const UnifiedRelationshipRanking(),
+        unifiedRelationshipIntelligenceService =
+            unifiedRelationshipIntelligenceService ??
+                DeterministicUnifiedRelationshipIntelligenceService(
+                  peopleRepository: peopleRepository,
+                  personDetailRepository: personDetailRepository,
+                  activityRepository: activityRepository,
+                  followUpRepository: followUpRepository,
+                  captureRepository: captureRepository,
+                  strengthCalculator: relationshipStrengthCalculator ??
+                      const DeterministicRelationshipStrengthCalculator(),
+                  stateClassifier: relationshipStateClassifier ??
+                      const DeterministicRelationshipStateClassifier(),
+                  actionEngine: relationshipActionEngine ??
+                      const DeterministicRelationshipActionEngine(),
+                  attentionEngine: relationshipAttentionEngine ??
+                      const DeterministicRelationshipAttentionEngine(),
+                  momentumEngine: relationshipMomentumEngine ??
+                      const DeterministicRelationshipMomentumEngine(),
+                  networkConnectionService:
+                      networkConnectionIntelligenceService,
+                  networkIntelligenceService: networkIntelligenceService,
+                  ranking: unifiedRelationshipRanking ??
+                      const UnifiedRelationshipRanking(),
+                  validator: relationshipIntelligenceConsistencyValidator ??
+                      const RelationshipIntelligenceConsistencyValidator(),
+                );
 
   /// Production configuration resolving to Firestore-backed repositories, ML Kit OCR, and identity resolution.
   factory RecallrDependencies.production({
@@ -452,7 +500,8 @@ class RecallrDependencies {
     RelationshipActionPriorityCalculator? relationshipActionPriorityCalculator,
     RelationshipActionEngine? relationshipActionEngine,
     RelationshipAttentionCalculator? relationshipAttentionCalculator,
-    RelationshipAttentionPriorityCalculator? relationshipAttentionPriorityCalculator,
+    RelationshipAttentionPriorityCalculator?
+        relationshipAttentionPriorityCalculator,
     RelationshipAttentionEngine? relationshipAttentionEngine,
     NetworkHealthCalculator? networkHealthCalculator,
     NetworkTrendCalculator? networkTrendCalculator,
@@ -467,19 +516,27 @@ class RecallrDependencies {
     NetworkClusterDetector? networkClusterDetector,
     NetworkPatternEngine? networkPatternEngine,
     NetworkConnectionIntelligenceService? networkConnectionIntelligenceService,
-    UnifiedRelationshipIntelligenceService? unifiedRelationshipIntelligenceService,
-    RelationshipIntelligenceConsistencyValidator? relationshipIntelligenceConsistencyValidator,
+    UnifiedRelationshipIntelligenceService?
+        unifiedRelationshipIntelligenceService,
+    RelationshipIntelligenceConsistencyValidator?
+        relationshipIntelligenceConsistencyValidator,
     UnifiedRelationshipRanking? unifiedRelationshipRanking,
     CrashReportingService? crashReportingService,
     TelemetryService? telemetryService,
     PerformanceTracker? performanceTracker,
   }) {
-    final peopleRepo = peopleRepository ?? FirestorePeopleRepository(firestore: firestore, auth: auth);
-    final subRepo = subscriptionRepository ?? FirestoreSubscriptionRepository(firestore: firestore, auth: auth);
-    final personDetailRepo = personDetailRepository ?? FirestorePersonDetailRepository(firestore: firestore, auth: auth);
-    final activityRepo = activityRepository ?? FirestoreActivityRepository(firestore: firestore, auth: auth);
-    final followUpRepo = followUpRepository ?? FirestoreFollowUpRepository(firestore: firestore, auth: auth);
-    final captureRepo = captureRepository ?? FirestoreCaptureRepository(firestore: firestore, auth: auth);
+    final peopleRepo = peopleRepository ??
+        FirestorePeopleRepository(firestore: firestore, auth: auth);
+    final subRepo = subscriptionRepository ??
+        FirestoreSubscriptionRepository(firestore: firestore, auth: auth);
+    final personDetailRepo = personDetailRepository ??
+        FirestorePersonDetailRepository(firestore: firestore, auth: auth);
+    final activityRepo = activityRepository ??
+        FirestoreActivityRepository(firestore: firestore, auth: auth);
+    final followUpRepo = followUpRepository ??
+        FirestoreFollowUpRepository(firestore: firestore, auth: auth);
+    final captureRepo = captureRepository ??
+        FirestoreCaptureRepository(firestore: firestore, auth: auth);
     final ocr = ocrService ?? MlKitOcrService();
 
     final relMemoryService = relationshipMemoryService ??
@@ -523,7 +580,8 @@ class RecallrDependencies {
         );
 
     final grounding = answerGroundingService ?? const AnswerGroundingService();
-    final geminiConfig = geminiAiConfiguration ?? GeminiAiConfiguration.fromEnvironment();
+    final geminiConfig =
+        geminiAiConfiguration ?? GeminiAiConfiguration.fromEnvironment();
     final geminiProv = geminiAiProvider ??
         (geminiConfig.isConfigured
             ? GoogleSdkGeminiAiProvider(configuration: geminiConfig)
@@ -533,7 +591,8 @@ class RecallrDependencies {
               ));
     final promptBuilder = geminiPromptBuilder ?? const GeminiPromptBuilder();
     final responseParser = geminiResponseParser ?? const GeminiResponseParser();
-    final validator = groundedAnswerValidator ?? GroundedAnswerValidator(groundingService: grounding);
+    final validator = groundedAnswerValidator ??
+        GroundedAnswerValidator(groundingService: grounding);
 
     final generator = aiAnswerGenerator ??
         GeminiGroundedAnswerGenerator(
@@ -542,7 +601,8 @@ class RecallrDependencies {
           promptBuilder: promptBuilder,
           responseParser: responseParser,
           validator: validator,
-          fallbackGenerator: DeterministicAiAnswerGenerator(groundingService: grounding),
+          fallbackGenerator:
+              DeterministicAiAnswerGenerator(groundingService: grounding),
         );
 
     final answerSvc = aiAnswerService ??
@@ -570,7 +630,8 @@ class RecallrDependencies {
     final actionPriorityCalc = relationshipActionPriorityCalculator ??
         const DeterministicRelationshipActionPriorityCalculator();
     final actionEngine = relationshipActionEngine ??
-        DeterministicRelationshipActionEngine(priorityCalculator: actionPriorityCalc);
+        DeterministicRelationshipActionEngine(
+            priorityCalculator: actionPriorityCalc);
 
     final attentionCalc = relationshipAttentionCalculator ??
         const DeterministicRelationshipAttentionCalculator();
@@ -583,12 +644,12 @@ class RecallrDependencies {
           actionEngine: actionEngine,
         );
 
-    final netHealthCalc = networkHealthCalculator ??
-        const DeterministicNetworkHealthCalculator();
-    final netTrendCalc = networkTrendCalculator ??
-        const DeterministicNetworkTrendCalculator();
-    final netInsightGen = networkInsightGenerator ??
-        const DeterministicNetworkInsightGenerator();
+    final netHealthCalc =
+        networkHealthCalculator ?? const DeterministicNetworkHealthCalculator();
+    final netTrendCalc =
+        networkTrendCalculator ?? const DeterministicNetworkTrendCalculator();
+    final netInsightGen =
+        networkInsightGenerator ?? const DeterministicNetworkInsightGenerator();
     final netIntelSvc = networkIntelligenceService ??
         DeterministicNetworkIntelligenceService(
           peopleRepository: peopleRepo,
@@ -630,14 +691,19 @@ class RecallrDependencies {
     final perfTracker = performanceTracker ?? PerformanceTracker(telemetrySvc);
 
     return RecallrDependencies(
+      libraryRepository: FirestoreLibraryRepository(
+          firestore: firestore, auth: auth, functions: functions),
       peopleRepository: peopleRepo,
       personDetailRepository: personDetailRepo,
       activityRepository: activityRepo,
       followUpRepository: followUpRepo,
       captureRepository: captureRepo,
       subscriptionRepository: subRepo,
-      paymentService: paymentService ?? RazorpayPaymentService(functions: functions, subscriptionRepository: subRepo),
-      mediaStorageRepository: FirebaseMediaStorageRepository(storage: storage, auth: auth, subscriptionRepository: subRepo),
+      paymentService: paymentService ??
+          RazorpayPaymentService(
+              functions: functions),
+      mediaStorageRepository: FirebaseMediaStorageRepository(
+          storage: storage, auth: auth, subscriptionRepository: subRepo),
       mediaPickerService: DeviceMediaPickerService(),
       audioRecorderService: DeviceAudioRecorderService(),
       captureProcessingRepository: FirestoreCaptureProcessingRepository(
@@ -716,7 +782,8 @@ class RecallrDependencies {
     RelationshipActionPriorityCalculator? relationshipActionPriorityCalculator,
     RelationshipActionEngine? relationshipActionEngine,
     RelationshipAttentionCalculator? relationshipAttentionCalculator,
-    RelationshipAttentionPriorityCalculator? relationshipAttentionPriorityCalculator,
+    RelationshipAttentionPriorityCalculator?
+        relationshipAttentionPriorityCalculator,
     RelationshipAttentionEngine? relationshipAttentionEngine,
     NetworkHealthCalculator? networkHealthCalculator,
     NetworkTrendCalculator? networkTrendCalculator,
@@ -731,15 +798,18 @@ class RecallrDependencies {
     NetworkClusterDetector? networkClusterDetector,
     NetworkPatternEngine? networkPatternEngine,
     NetworkConnectionIntelligenceService? networkConnectionIntelligenceService,
-    UnifiedRelationshipIntelligenceService? unifiedRelationshipIntelligenceService,
-    RelationshipIntelligenceConsistencyValidator? relationshipIntelligenceConsistencyValidator,
+    UnifiedRelationshipIntelligenceService?
+        unifiedRelationshipIntelligenceService,
+    RelationshipIntelligenceConsistencyValidator?
+        relationshipIntelligenceConsistencyValidator,
     UnifiedRelationshipRanking? unifiedRelationshipRanking,
     CrashReportingService? crashReportingService,
     TelemetryService? telemetryService,
     PerformanceTracker? performanceTracker,
   }) {
     final peopleRepo = peopleRepository ?? MockPeopleRepository();
-    final personDetailRepo = personDetailRepository ?? MockPersonDetailRepository();
+    final personDetailRepo =
+        personDetailRepository ?? MockPersonDetailRepository();
     final activityRepo = activityRepository ?? MockActivityRepository();
     final followUpRepo = followUpRepository ?? MockFollowUpRepository();
     final captureRepo = captureRepository ?? MockCaptureRepository();
@@ -794,7 +864,8 @@ class RecallrDependencies {
     final geminiProv = geminiAiProvider ?? MockGeminiAiProvider();
     final promptBuilder = geminiPromptBuilder ?? const GeminiPromptBuilder();
     final responseParser = geminiResponseParser ?? const GeminiResponseParser();
-    final validator = groundedAnswerValidator ?? GroundedAnswerValidator(groundingService: grounding);
+    final validator = groundedAnswerValidator ??
+        GroundedAnswerValidator(groundingService: grounding);
 
     final generator = aiAnswerGenerator ??
         GeminiGroundedAnswerGenerator(
@@ -803,7 +874,8 @@ class RecallrDependencies {
           promptBuilder: promptBuilder,
           responseParser: responseParser,
           validator: validator,
-          fallbackGenerator: DeterministicAiAnswerGenerator(groundingService: grounding),
+          fallbackGenerator:
+              DeterministicAiAnswerGenerator(groundingService: grounding),
         );
 
     final answerSvc = aiAnswerService ??
@@ -831,7 +903,8 @@ class RecallrDependencies {
     final actionPriorityCalc = relationshipActionPriorityCalculator ??
         const DeterministicRelationshipActionPriorityCalculator();
     final actionEngine = relationshipActionEngine ??
-        DeterministicRelationshipActionEngine(priorityCalculator: actionPriorityCalc);
+        DeterministicRelationshipActionEngine(
+            priorityCalculator: actionPriorityCalc);
 
     final attentionCalc = relationshipAttentionCalculator ??
         const DeterministicRelationshipAttentionCalculator();
@@ -844,12 +917,12 @@ class RecallrDependencies {
           actionEngine: actionEngine,
         );
 
-    final netHealthCalc = networkHealthCalculator ??
-        const DeterministicNetworkHealthCalculator();
-    final netTrendCalc = networkTrendCalculator ??
-        const DeterministicNetworkTrendCalculator();
-    final netInsightGen = networkInsightGenerator ??
-        const DeterministicNetworkInsightGenerator();
+    final netHealthCalc =
+        networkHealthCalculator ?? const DeterministicNetworkHealthCalculator();
+    final netTrendCalc =
+        networkTrendCalculator ?? const DeterministicNetworkTrendCalculator();
+    final netInsightGen =
+        networkInsightGenerator ?? const DeterministicNetworkInsightGenerator();
     final netIntelSvc = networkIntelligenceService ??
         DeterministicNetworkIntelligenceService(
           peopleRepository: peopleRepo,
@@ -896,13 +969,18 @@ class RecallrDependencies {
       activityRepository: activityRepo,
       followUpRepository: followUpRepo,
       captureRepository: captureRepo,
-      subscriptionRepository: subscriptionRepository ?? MockSubscriptionRepository(),
-      paymentService: paymentService ?? MockPaymentService(subscriptionRepository: subscriptionRepository ?? MockSubscriptionRepository()),
-      mediaStorageRepository: mediaStorageRepository ?? MockMediaStorageRepository(),
+      subscriptionRepository:
+          subscriptionRepository ?? MockSubscriptionRepository(),
+      paymentService: paymentService ??
+          MockPaymentService(
+              subscriptionRepository:
+                  subscriptionRepository ?? MockSubscriptionRepository()),
+      mediaStorageRepository:
+          mediaStorageRepository ?? MockMediaStorageRepository(),
       mediaPickerService: mediaPickerService ?? MockMediaPickerService(),
       audioRecorderService: audioRecorderService ?? MockAudioRecorderService(),
-      captureProcessingRepository:
-          captureProcessingRepository ?? MockCaptureProcessingRepository(service: service),
+      captureProcessingRepository: captureProcessingRepository ??
+          MockCaptureProcessingRepository(service: service),
       captureProcessingService: service,
       ocrService: ocr,
       entityResolutionService: resolutionService,
@@ -944,7 +1022,8 @@ class RecallrDependencies {
   static RecallrDependencies? _instance;
 
   /// Global instance fallback (defaults to Mock configuration for tests and offline preview).
-  static RecallrDependencies get instance => _instance ??= RecallrDependencies.mock();
+  static RecallrDependencies get instance =>
+      _instance ??= RecallrDependencies.mock();
 
   /// Set the global dependencies instance (useful for testing or app bootstrap).
   static void setInstance(RecallrDependencies dependencies) {
@@ -982,53 +1061,97 @@ class RecallrScope extends InheritedWidget {
 extension RecallrDependenciesContext on BuildContext {
   RecallrDependencies get dependencies => RecallrScope.of(this);
   PeopleRepository get peopleRepo => dependencies.peopleRepository;
-  PersonDetailRepository get personDetailRepo => dependencies.personDetailRepository;
+  PersonDetailRepository get personDetailRepo =>
+      dependencies.personDetailRepository;
   ActivityRepository get activityRepo => dependencies.activityRepository;
   FollowUpRepository get followUpRepo => dependencies.followUpRepository;
   CaptureRepository get captureRepo => dependencies.captureRepository;
-  SubscriptionRepository get subscriptionRepo => dependencies.subscriptionRepository;
+  SubscriptionRepository get subscriptionRepo =>
+      dependencies.subscriptionRepository;
   PaymentService get paymentService => dependencies.paymentService;
-  MediaStorageRepository get mediaStorageRepo => dependencies.mediaStorageRepository;
+  MediaStorageRepository get mediaStorageRepo =>
+      dependencies.mediaStorageRepository;
   MediaPickerService get mediaPickerService => dependencies.mediaPickerService;
-  AudioRecorderService get audioRecorderService => dependencies.audioRecorderService;
-  CaptureProcessingRepository get captureProcessingRepo => dependencies.captureProcessingRepository;
-  CaptureProcessingService get captureProcessingService => dependencies.captureProcessingService;
+  AudioRecorderService get audioRecorderService =>
+      dependencies.audioRecorderService;
+  CaptureProcessingRepository get captureProcessingRepo =>
+      dependencies.captureProcessingRepository;
+  CaptureProcessingService get captureProcessingService =>
+      dependencies.captureProcessingService;
   OcrService get ocrService => dependencies.ocrService;
-  EntityResolutionService get entityResolutionService => dependencies.entityResolutionService;
-  RelationshipMemoryService get relationshipMemoryService => dependencies.relationshipMemoryService;
-  MemoryRetrievalRepository get memoryRetrievalRepo => dependencies.memoryRetrievalRepository;
-  RelationshipContextAssembler get relationshipContextAssembler => dependencies.relationshipContextAssembler;
-  MemoryRetrievalService get memoryRetrievalService => dependencies.memoryRetrievalService;
+  EntityResolutionService get entityResolutionService =>
+      dependencies.entityResolutionService;
+  RelationshipMemoryService get relationshipMemoryService =>
+      dependencies.relationshipMemoryService;
+  MemoryRetrievalRepository get memoryRetrievalRepo =>
+      dependencies.memoryRetrievalRepository;
+  RelationshipContextAssembler get relationshipContextAssembler =>
+      dependencies.relationshipContextAssembler;
+  MemoryRetrievalService get memoryRetrievalService =>
+      dependencies.memoryRetrievalService;
   AiAnswerGenerator get aiAnswerGenerator => dependencies.aiAnswerGenerator;
-  AnswerGroundingService get answerGroundingService => dependencies.answerGroundingService;
+  AnswerGroundingService get answerGroundingService =>
+      dependencies.answerGroundingService;
   AiAnswerService get aiAnswerService => dependencies.aiAnswerService;
-  GeminiAiConfiguration get geminiAiConfiguration => dependencies.geminiAiConfiguration;
+  GeminiAiConfiguration get geminiAiConfiguration =>
+      dependencies.geminiAiConfiguration;
   GeminiAiProvider get geminiAiProvider => dependencies.geminiAiProvider;
-  GeminiPromptBuilder get geminiPromptBuilder => dependencies.geminiPromptBuilder;
-  GeminiResponseParser get geminiResponseParser => dependencies.geminiResponseParser;
-  GroundedAnswerValidator get groundedAnswerValidator => dependencies.groundedAnswerValidator;
-  RelationshipStrengthCalculator get relationshipStrengthCalculator => dependencies.relationshipStrengthCalculator;
-  RelationshipStateClassifier get relationshipStateClassifier => dependencies.relationshipStateClassifier;
-  RelationshipIntelligenceService get relationshipIntelligenceService => dependencies.relationshipIntelligenceService;
-  RelationshipActionPriorityCalculator get relationshipActionPriorityCalculator => dependencies.relationshipActionPriorityCalculator;
-  RelationshipActionEngine get relationshipActionEngine => dependencies.relationshipActionEngine;
-  RelationshipAttentionCalculator get relationshipAttentionCalculator => dependencies.relationshipAttentionCalculator;
-  RelationshipAttentionPriorityCalculator get relationshipAttentionPriorityCalculator => dependencies.relationshipAttentionPriorityCalculator;
-  RelationshipAttentionEngine get relationshipAttentionEngine => dependencies.relationshipAttentionEngine;
-  NetworkHealthCalculator get networkHealthCalculator => dependencies.networkHealthCalculator;
-  NetworkTrendCalculator get networkTrendCalculator => dependencies.networkTrendCalculator;
-  NetworkInsightGenerator get networkInsightGenerator => dependencies.networkInsightGenerator;
-  NetworkIntelligenceService get networkIntelligenceService => dependencies.networkIntelligenceService;
-  RelationshipCadenceCalculator get relationshipCadenceCalculator => dependencies.relationshipCadenceCalculator;
-  RelationshipVelocityCalculator get relationshipVelocityCalculator => dependencies.relationshipVelocityCalculator;
-  RelationshipEvolutionClassifier get relationshipEvolutionClassifier => dependencies.relationshipEvolutionClassifier;
-  RelationshipMomentumEngine get relationshipMomentumEngine => dependencies.relationshipMomentumEngine;
-  RelationshipMomentumService get relationshipMomentumService => dependencies.relationshipMomentumService;
-  NetworkConnectionCalculator get networkConnectionCalculator => dependencies.networkConnectionCalculator;
-  NetworkClusterDetector get networkClusterDetector => dependencies.networkClusterDetector;
-  NetworkPatternEngine get networkPatternEngine => dependencies.networkPatternEngine;
-  NetworkConnectionIntelligenceService get networkConnectionIntelligenceService => dependencies.networkConnectionIntelligenceService;
-  UnifiedRelationshipIntelligenceService get unifiedRelationshipIntelligence => dependencies.unifiedRelationshipIntelligenceService;
-  RelationshipIntelligenceConsistencyValidator get relationshipIntelligenceConsistencyValidator => dependencies.relationshipIntelligenceConsistencyValidator;
-  UnifiedRelationshipRanking get unifiedRelationshipRanking => dependencies.unifiedRelationshipRanking;
+  GeminiPromptBuilder get geminiPromptBuilder =>
+      dependencies.geminiPromptBuilder;
+  GeminiResponseParser get geminiResponseParser =>
+      dependencies.geminiResponseParser;
+  GroundedAnswerValidator get groundedAnswerValidator =>
+      dependencies.groundedAnswerValidator;
+  RelationshipStrengthCalculator get relationshipStrengthCalculator =>
+      dependencies.relationshipStrengthCalculator;
+  RelationshipStateClassifier get relationshipStateClassifier =>
+      dependencies.relationshipStateClassifier;
+  RelationshipIntelligenceService get relationshipIntelligenceService =>
+      dependencies.relationshipIntelligenceService;
+  RelationshipActionPriorityCalculator
+      get relationshipActionPriorityCalculator =>
+          dependencies.relationshipActionPriorityCalculator;
+  RelationshipActionEngine get relationshipActionEngine =>
+      dependencies.relationshipActionEngine;
+  RelationshipAttentionCalculator get relationshipAttentionCalculator =>
+      dependencies.relationshipAttentionCalculator;
+  RelationshipAttentionPriorityCalculator
+      get relationshipAttentionPriorityCalculator =>
+          dependencies.relationshipAttentionPriorityCalculator;
+  RelationshipAttentionEngine get relationshipAttentionEngine =>
+      dependencies.relationshipAttentionEngine;
+  NetworkHealthCalculator get networkHealthCalculator =>
+      dependencies.networkHealthCalculator;
+  NetworkTrendCalculator get networkTrendCalculator =>
+      dependencies.networkTrendCalculator;
+  NetworkInsightGenerator get networkInsightGenerator =>
+      dependencies.networkInsightGenerator;
+  NetworkIntelligenceService get networkIntelligenceService =>
+      dependencies.networkIntelligenceService;
+  RelationshipCadenceCalculator get relationshipCadenceCalculator =>
+      dependencies.relationshipCadenceCalculator;
+  RelationshipVelocityCalculator get relationshipVelocityCalculator =>
+      dependencies.relationshipVelocityCalculator;
+  RelationshipEvolutionClassifier get relationshipEvolutionClassifier =>
+      dependencies.relationshipEvolutionClassifier;
+  RelationshipMomentumEngine get relationshipMomentumEngine =>
+      dependencies.relationshipMomentumEngine;
+  RelationshipMomentumService get relationshipMomentumService =>
+      dependencies.relationshipMomentumService;
+  NetworkConnectionCalculator get networkConnectionCalculator =>
+      dependencies.networkConnectionCalculator;
+  NetworkClusterDetector get networkClusterDetector =>
+      dependencies.networkClusterDetector;
+  NetworkPatternEngine get networkPatternEngine =>
+      dependencies.networkPatternEngine;
+  NetworkConnectionIntelligenceService
+      get networkConnectionIntelligenceService =>
+          dependencies.networkConnectionIntelligenceService;
+  UnifiedRelationshipIntelligenceService get unifiedRelationshipIntelligence =>
+      dependencies.unifiedRelationshipIntelligenceService;
+  RelationshipIntelligenceConsistencyValidator
+      get relationshipIntelligenceConsistencyValidator =>
+          dependencies.relationshipIntelligenceConsistencyValidator;
+  UnifiedRelationshipRanking get unifiedRelationshipRanking =>
+      dependencies.unifiedRelationshipRanking;
 }

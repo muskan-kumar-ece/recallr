@@ -11,7 +11,8 @@ Widget _buildWrapper(Widget child) {
   return MaterialApp(
     theme: RecallrTheme.darkTheme,
     routes: {
-      '/person/per_priya': (context) => const Scaffold(body: Text('Person Profile Priya')),
+      '/person/per_priya': (context) =>
+          const Scaffold(body: Text('Person Profile Priya')),
       '/people': (context) => const Scaffold(body: Text('People Directory')),
     },
     home: child,
@@ -20,7 +21,8 @@ Widget _buildWrapper(Widget child) {
 
 void main() {
   group('Production Secondary Dossiers & Settings Tests', () {
-    testWidgets('1. InteractionDossierScreen renders with contextual data and memory claims', (tester) async {
+    testWidgets('1. InteractionDossierScreen does not fabricate missing data',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -31,18 +33,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Interaction Details int_101'), findsOneWidget);
-      expect(find.text('Strategic Relationship Encounter'), findsOneWidget);
-      expect(find.text('Extracted Relationship Memory'), findsOneWidget);
-      expect(find.text('Action Commitments'), findsOneWidget);
-      expect(find.text('Network Partner'), findsOneWidget);
-
-      // Verify navigation to person from encounter
-      await tester.tap(find.text('Network Partner'));
-      await tester.pumpAndSettle();
-      expect(find.text('Person Profile Priya'), findsOneWidget);
+      expect(find.textContaining('Unable to load encounter record'),
+          findsOneWidget);
     });
 
-    testWidgets('2. CompanyDossierScreen renders organization header and affiliate contacts link', (tester) async {
+    testWidgets(
+        '2. CompanyDossierScreen renders organization header and affiliate contacts link',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -62,7 +59,9 @@ void main() {
       expect(find.text('People Directory'), findsOneWidget);
     });
 
-    testWidgets('3. EventDossierScreen renders event details and encounter touchpoints', (tester) async {
+    testWidgets(
+        '3. EventDossierScreen renders event details and encounter touchpoints',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -77,7 +76,9 @@ void main() {
       expect(find.text('EVENT ENCOUNTER'), findsOneWidget);
     });
 
-    testWidgets('4. FileDossierScreen renders document details and secured storage badges', (tester) async {
+    testWidgets(
+        '4. FileDossierScreen renders document details and secured storage badges',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -93,7 +94,9 @@ void main() {
       expect(find.text('Secured Cloud Storage'), findsOneWidget);
     });
 
-    testWidgets('5. SettingsScreen renders user account, AI controls, and security info', (tester) async {
+    testWidgets(
+        '5. SettingsScreen renders user account and user-facing preferences',
+        (tester) async {
       tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -102,16 +105,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Settings & Preferences'), findsOneWidget);
-      expect(find.text('AI & Grounding Controls'), findsOneWidget);
-      expect(find.text('Strict Grounding Mode'), findsOneWidget);
       expect(find.text('Local Offline Persistence'), findsOneWidget);
-      expect(find.text('Tenant Isolation & App Check'), findsOneWidget);
+      expect(find.text('My Visiting Card'), findsOneWidget);
+      expect(find.text('Categories'), findsOneWidget);
       expect(find.text('Sign Out'), findsOneWidget);
-      expect(find.textContaining('Recallr v1.0.0'), findsOneWidget);
-
-      // Verify toggles work interactively
-      await tester.tap(find.text('Strict Grounding Mode'));
-      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Local Offline Persistence'));
       await tester.pumpAndSettle();

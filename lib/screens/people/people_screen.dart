@@ -57,7 +57,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
   PeopleRepository get _repository =>
       widget.repository ??
-      (mounted ? context.peopleRepo : RecallrDependencies.instance.peopleRepository);
+      (mounted
+          ? context.peopleRepo
+          : RecallrDependencies.instance.peopleRepository);
 
   @override
   void initState() {
@@ -77,18 +79,25 @@ class _PeopleScreenState extends State<PeopleScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (widget.initialPeople == null && !widget.isEmpty && !widget.isLoading && !widget.isError) {
+    if (widget.initialPeople == null &&
+        !widget.isEmpty &&
+        !widget.isLoading &&
+        !widget.isError) {
       _subscribeToPeople();
       _subscribeToRecent();
     }
-    if (widget.initialSnapshot == null && !widget.isEmpty && !widget.isLoading && !widget.isError) {
+    if (widget.initialSnapshot == null &&
+        !widget.isEmpty &&
+        !widget.isLoading &&
+        !widget.isError) {
       _subscribeToSnapshot();
     }
   }
 
   void _subscribeToPeople() {
     _peopleSubscription?.cancel();
-    if (widget.initialPeople != null || widget.isEmpty || widget.isError) return;
+    if (widget.initialPeople != null || widget.isEmpty || widget.isError)
+      return;
 
     _peopleSubscription = _repository.streamPeople().listen(
       (people) {
@@ -117,7 +126,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
   void _subscribeToRecent() {
     _recentSubscription?.cancel();
-    if (widget.initialPeople != null || widget.isEmpty || widget.isError) return;
+    if (widget.initialPeople != null || widget.isEmpty || widget.isError)
+      return;
 
     _recentSubscription = _repository.streamRecentlyInteracted().listen(
       (recent) {
@@ -133,7 +143,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
   void _subscribeToSnapshot() {
     _snapshotSubscription?.cancel();
-    if (widget.initialSnapshot != null || widget.isEmpty || widget.isError) return;
+    if (widget.initialSnapshot != null || widget.isEmpty || widget.isError)
+      return;
 
     final service = mounted
         ? context.unifiedRelationshipIntelligence
@@ -161,7 +172,10 @@ class _PeopleScreenState extends State<PeopleScreen> {
         oldWidget.initialSnapshot != widget.initialSnapshot) {
       setState(() {
         _isLoading = widget.isLoading ||
-            (widget.initialPeople == null && !widget.isEmpty && !widget.isError && _allPeople.isEmpty);
+            (widget.initialPeople == null &&
+                !widget.isEmpty &&
+                !widget.isError &&
+                _allPeople.isEmpty);
         _isError = widget.isError;
         _isEmpty = widget.isEmpty;
         if (widget.initialSnapshot != null) {
@@ -176,7 +190,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
         _subscribeToPeople();
         _subscribeToRecent();
       }
-      if (widget.initialSnapshot == null && !widget.isEmpty && !widget.isError) {
+      if (widget.initialSnapshot == null &&
+          !widget.isEmpty &&
+          !widget.isError) {
         _subscribeToSnapshot();
       }
     }
@@ -268,10 +284,14 @@ class _PeopleScreenState extends State<PeopleScreen> {
         final matchesName = person.name.toLowerCase().contains(query);
         final matchesCompany = person.company.toLowerCase().contains(query);
         final matchesRole = person.role.toLowerCase().contains(query);
-        final matchesPhone = person.phone?.toLowerCase().contains(query) ?? false;
-        final matchesEmail = person.email?.toLowerCase().contains(query) ?? false;
-        final matchesContext = person.contextSnippet?.toLowerCase().contains(query) ?? false;
-        final matchesCapabilities = person.capabilities.any((c) => c.toLowerCase().contains(query));
+        final matchesPhone =
+            person.phone?.toLowerCase().contains(query) ?? false;
+        final matchesEmail =
+            person.email?.toLowerCase().contains(query) ?? false;
+        final matchesContext =
+            person.contextSnippet?.toLowerCase().contains(query) ?? false;
+        final matchesCapabilities =
+            person.capabilities.any((c) => c.toLowerCase().contains(query));
 
         if (!matchesName &&
             !matchesCompany &&
@@ -289,16 +309,22 @@ class _PeopleScreenState extends State<PeopleScreen> {
     switch (_selectedSort) {
       case PeopleSortOption.recent:
         list.sort((a, b) {
-          final aDate = a.lastInteractionDate ?? a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
-          final bDate = b.lastInteractionDate ?? b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final aDate = a.lastInteractionDate ??
+              a.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
+          final bDate = b.lastInteractionDate ??
+              b.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
           return bDate.compareTo(aDate);
         });
         break;
       case PeopleSortOption.nameAsc:
-        list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        list.sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         break;
       case PeopleSortOption.nameDesc:
-        list.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        list.sort(
+            (a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
         break;
       case PeopleSortOption.interactions:
         list.sort((a, b) => b.interactionCount.compareTo(a.interactionCount));
@@ -307,14 +333,6 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
     return list;
   }
-
-  // ─── Category helpers ─────────────────────────────────────────────────────
-
-  int _countByRelationshipType(RelationshipContextType type) =>
-      _allPeople.where((p) => p.relationshipType == type).length;
-
-  int _countByRole(String keyword) =>
-      _allPeople.where((p) => p.role.toLowerCase().contains(keyword.toLowerCase())).length;
 
   // ─── Build ─────────────────────────────────────────────────────────────────
 
@@ -326,7 +344,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
           child: Padding(
             padding: RecallrSpacing.pagePadding,
             child: RecallrErrorState(
-              message: "We couldn't load your people directory. Please check your connection and try again.",
+              message:
+                  "We couldn't load your people directory. Please check your connection and try again.",
               onRetry: _handleRetry,
             ),
           ),
@@ -345,7 +364,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
     if (_isEmpty || (_allPeople.isEmpty && widget.initialPeople == null)) {
       return Scaffold(
         body: PeopleEmptyState(
-          isSearch: _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all,
+          isSearch: _searchQuery.isNotEmpty ||
+              _selectedFilter != PeopleFilterOption.all,
           searchQuery: _searchQuery,
           onClearSearch: _clearFiltersAndSearch,
         ),
@@ -359,12 +379,15 @@ class _PeopleScreenState extends State<PeopleScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 768;
-          final double maxWidth = constraints.maxWidth > 1100 ? 1040 : double.infinity;
+          final double maxWidth =
+              constraints.maxWidth > 1100 ? 1040 : double.infinity;
 
           return Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth),
-              child: isWide ? _buildWideLayout(filtered) : _buildMobileLayout(filtered),
+              child: isWide
+                  ? _buildWideLayout(filtered)
+                  : _buildMobileLayout(filtered),
             ),
           );
         },
@@ -393,7 +416,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.swap_vert_rounded, size: 14, color: RecallrColors.textTertiary),
+            const Icon(Icons.swap_vert_rounded,
+                size: 14, color: RecallrColors.textTertiary),
             const SizedBox(width: 4),
             Text(
               _selectedSort.label,
@@ -404,7 +428,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
               ),
             ),
             const SizedBox(width: 2),
-            const Icon(Icons.arrow_drop_down_rounded, size: 16, color: RecallrColors.textTertiary),
+            const Icon(Icons.arrow_drop_down_rounded,
+                size: 16, color: RecallrColors.textTertiary),
           ],
         ),
       ),
@@ -414,12 +439,18 @@ class _PeopleScreenState extends State<PeopleScreen> {
           value: opt,
           child: Row(
             children: [
-              Icon(opt.icon, size: 16, color: isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textSecondary),
+              Icon(opt.icon,
+                  size: 16,
+                  color: isSelected
+                      ? RecallrColors.aiElectricViolet
+                      : RecallrColors.textSecondary),
               const SizedBox(width: 8),
               Text(
                 opt.label,
                 style: RecallrTypography.bodyMedium.copyWith(
-                  color: isSelected ? RecallrColors.aiElectricViolet : RecallrColors.textPrimary,
+                  color: isSelected
+                      ? RecallrColors.aiElectricViolet
+                      : RecallrColors.textPrimary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
@@ -430,146 +461,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
     );
   }
 
-  Widget _buildCategoriesSection({bool isWide = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Organize your people and relationships.',
-            style: RecallrTypography.bodyMedium.copyWith(
-              color: RecallrColors.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: isWide ? 4 : 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: isWide ? 3.4 : 2.1,
-            children: [
-              _CategoryCard(
-                label: 'Friends',
-                icon: Icons.people_outline_rounded,
-                iconBgColor: const Color(0xFF2D1B8E).withValues(alpha: 0.4),
-                iconColor: const Color(0xFF7C6AF0),
-                count: _countByRelationshipType(RelationshipContextType.collaborator),
-                onTap: () {
-                  final newQuery = _searchQuery == 'Friends' ? '' : 'Friends';
-                  _searchController.text = newQuery;
-                  _onSearchChanged(newQuery);
-                },
-              ),
-              _CategoryCard(
-                label: 'Work',
-                icon: Icons.work_outline_rounded,
-                iconBgColor: const Color(0xFF0D3D30).withValues(alpha: 0.5),
-                iconColor: RecallrColors.emeraldVerified,
-                count: _countByRelationshipType(RelationshipContextType.colleague),
-                onTap: () {
-                  final newQuery = _searchQuery == 'Work' ? '' : 'Work';
-                  _searchController.text = newQuery;
-                  _onSearchChanged(newQuery);
-                },
-              ),
-              _CategoryCard(
-                label: 'College',
-                icon: Icons.school_outlined,
-                iconBgColor: const Color(0xFF0D2A3D).withValues(alpha: 0.5),
-                iconColor: const Color(0xFF38BDF8),
-                count: _countByRole('student') + _countByRole('classmate'),
-                onTap: () {
-                  final newQuery = _searchQuery == 'College' ? '' : 'College';
-                  _searchController.text = newQuery;
-                  _onSearchChanged(newQuery);
-                },
-              ),
-              _CategoryCard(
-                label: 'Family',
-                icon: Icons.favorite_outline_rounded,
-                iconBgColor: const Color(0xFF3D0D1E).withValues(alpha: 0.5),
-                iconColor: const Color(0xFFE879A0),
-                count: _countByRole('family') + _countByRole('relative'),
-                onTap: () {
-                  final newQuery = _searchQuery == 'Family' ? '' : 'Family';
-                  _searchController.text = newQuery;
-                  _onSearchChanged(newQuery);
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddPeopleRow(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: GestureDetector(
-        onTap: _handleAddPerson,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: RecallrColors.charcoalCard,
-            borderRadius: RecallrRadii.radiusLg,
-            border: Border.all(color: RecallrColors.borderSubtle, width: 1),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: RecallrColors.aiElectricViolet.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  color: RecallrColors.aiElectricViolet,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Add people',
-                      style: RecallrTypography.titleMedium.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Manually, with AI, via QR, or by scanning a business card.',
-                      style: RecallrTypography.bodyMedium.copyWith(
-                        color: RecallrColors.textTertiary,
-                        fontSize: 12,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_rounded, color: RecallrColors.textTertiary, size: 18),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildMobileLayout(List<PersonItem> filtered) {
-    final bool hasFilterOrSearch = _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
+    final bool hasFilterOrSearch =
+        _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
 
     return CustomScrollView(
       slivers: [
@@ -580,11 +474,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
           ),
         ),
         SliverToBoxAdapter(
-          child: _buildCategoriesSection(isWide: false),
-        ),
-        SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             child: Row(
               children: [
                 Expanded(
@@ -615,7 +507,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
         if (hasFilterOrSearch)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
               child: Text(
                 'Showing ${filtered.length} of ${_allPeople.length} contacts',
                 style: RecallrTypography.monoMetadata.copyWith(
@@ -625,7 +518,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
               ),
             ),
           ),
-        if (_recentlyInteracted.isNotEmpty && _searchQuery.isEmpty && _selectedFilter == PeopleFilterOption.all)
+        if (_recentlyInteracted.isNotEmpty &&
+            _searchQuery.isEmpty &&
+            _selectedFilter == PeopleFilterOption.all)
           SliverToBoxAdapter(
             child: RecentlyInteractedSection(
               items: _recentlyInteracted,
@@ -642,7 +537,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -651,7 +547,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: PersonCard(
                       person: person,
-                      intelligence: (_snapshot ?? widget.initialSnapshot)?.getPerson(person.id),
+                      intelligence: (_snapshot ?? widget.initialSnapshot)
+                          ?.getPerson(person.id),
                       onDelete: () => _handleDeletePerson(person),
                     ),
                   );
@@ -660,9 +557,6 @@ class _PeopleScreenState extends State<PeopleScreen> {
               ),
             ),
           ),
-        SliverToBoxAdapter(
-          child: _buildAddPeopleRow(context),
-        ),
         const SliverToBoxAdapter(
           child: SizedBox(height: 80.0),
         ),
@@ -671,7 +565,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   Widget _buildWideLayout(List<PersonItem> filtered) {
-    final bool hasFilterOrSearch = _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
+    final bool hasFilterOrSearch =
+        _searchQuery.isNotEmpty || _selectedFilter != PeopleFilterOption.all;
 
     return CustomScrollView(
       slivers: [
@@ -682,11 +577,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
           ),
         ),
         SliverToBoxAdapter(
-          child: _buildCategoriesSection(isWide: true),
-        ),
-        SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
             child: Row(
               children: [
                 Expanded(
@@ -717,7 +610,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
         if (hasFilterOrSearch)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
               child: Text(
                 'Showing ${filtered.length} of ${_allPeople.length} contacts',
                 style: RecallrTypography.monoMetadata.copyWith(
@@ -727,7 +621,9 @@ class _PeopleScreenState extends State<PeopleScreen> {
               ),
             ),
           ),
-        if (_recentlyInteracted.isNotEmpty && _searchQuery.isEmpty && _selectedFilter == PeopleFilterOption.all)
+        if (_recentlyInteracted.isNotEmpty &&
+            _searchQuery.isEmpty &&
+            _selectedFilter == PeopleFilterOption.all)
           SliverToBoxAdapter(
             child: RecentlyInteractedSection(
               items: _recentlyInteracted,
@@ -753,7 +649,8 @@ class _PeopleScreenState extends State<PeopleScreen> {
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: PersonCard(
                       person: person,
-                      intelligence: (_snapshot ?? widget.initialSnapshot)?.getPerson(person.id),
+                      intelligence: (_snapshot ?? widget.initialSnapshot)
+                          ?.getPerson(person.id),
                       onDelete: () => _handleDeletePerson(person),
                     ),
                   );
@@ -762,9 +659,6 @@ class _PeopleScreenState extends State<PeopleScreen> {
               ),
             ),
           ),
-        SliverToBoxAdapter(
-          child: _buildAddPeopleRow(context),
-        ),
         const SliverToBoxAdapter(
           child: SizedBox(height: 80.0),
         ),
@@ -791,84 +685,6 @@ class _PeopleScreenState extends State<PeopleScreen> {
         RecallrSpacing.gapLg,
         const RecallrSkeleton(height: 120.0),
       ],
-    );
-  }
-}
-
-// ─── Category Card ──────────────────────────────────────────────────────────
-
-class _CategoryCard extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final Color iconBgColor;
-  final Color iconColor;
-  final int count;
-  final VoidCallback onTap;
-
-  const _CategoryCard({
-    required this.label,
-    required this.icon,
-    required this.iconBgColor,
-    required this.iconColor,
-    required this.count,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: RecallrColors.charcoalCard,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: RecallrColors.borderSubtle, width: 1),
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Row(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: iconBgColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(icon, color: iconColor, size: 16),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: RecallrTypography.titleMedium.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: RecallrColors.textPrimary,
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$count people',
-                    style: RecallrTypography.bodyMedium.copyWith(
-                      color: RecallrColors.textTertiary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

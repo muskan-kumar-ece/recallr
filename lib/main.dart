@@ -14,12 +14,14 @@ import 'core/bootstrap/firebase_bootstrap.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await RecallrThemeModeController.initialize();
 
   final result = await FirebaseBootstrap.initialize();
 
   if (!result.isSuccess) {
     runApp(RecallrBootstrapErrorApp(
-      errorMessage: result.errorMessage ?? 'Unknown secure startup error occurred.',
+      errorMessage:
+          result.errorMessage ?? 'Unknown secure startup error occurred.',
     ));
     return;
   }
@@ -41,14 +43,19 @@ class RecallerApp extends StatelessWidget {
 
     return RecallrScope(
       dependencies: deps,
-      child: MaterialApp(
-        title: 'Recallr',
-        debugShowCheckedModeBanner: false,
-        theme: RecallrTheme.darkTheme,
-        darkTheme: RecallrTheme.darkTheme,
-        themeMode: ThemeMode.dark,
-        onGenerateRoute: AppRouter.onGenerateRoute,
-        home: const AuthGate(),
+      child: ValueListenableBuilder<ThemeMode>(
+        valueListenable: RecallrThemeModeController.mode,
+        builder: (context, themeMode, _) {
+          return MaterialApp(
+            title: 'Recallr',
+            debugShowCheckedModeBanner: false,
+            theme: RecallrTheme.lightTheme,
+            darkTheme: RecallrTheme.darkTheme,
+            themeMode: themeMode,
+            onGenerateRoute: AppRouter.onGenerateRoute,
+            home: const AuthGate(),
+          );
+        },
       ),
     );
   }
@@ -134,12 +141,14 @@ class _AuthGateState extends State<AuthGate> {
                     RecallrSpacing.gapMd,
                     Text(
                       'Authentication Error',
-                      style: RecallrTypography.headlineMedium.copyWith(color: RecallrColors.textPrimary),
+                      style: RecallrTypography.headlineMedium
+                          .copyWith(color: RecallrColors.textPrimary),
                     ),
                     RecallrSpacing.gapSm,
                     Text(
                       snapshot.error.toString(),
-                      style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.textSecondary),
+                      style: RecallrTypography.bodyMedium
+                          .copyWith(color: RecallrColors.textSecondary),
                       textAlign: TextAlign.center,
                     ),
                   ],

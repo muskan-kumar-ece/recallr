@@ -17,7 +17,8 @@ class InteractionDossierScreen extends StatefulWidget {
   });
 
   @override
-  State<InteractionDossierScreen> createState() => _InteractionDossierScreenState();
+  State<InteractionDossierScreen> createState() =>
+      _InteractionDossierScreenState();
 }
 
 class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
@@ -48,8 +49,9 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
     if (user == null) {
       if (!mounted) return;
       setState(() {
-        _interaction = _generateContextualData(widget.interactionId);
+        _interaction = null;
         _isLoading = false;
+        _isError = true;
       });
       return;
     }
@@ -63,58 +65,39 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
           .doc(widget.interactionId)
           .snapshots()
           .listen(
-      (doc) {
-        if (!mounted) return;
-        if (doc.exists && doc.data() != null) {
+        (doc) {
+          if (!mounted) return;
+          if (doc.exists && doc.data() != null) {
+            setState(() {
+              _interaction = doc.data()!..['id'] = doc.id;
+              _isLoading = false;
+              _isError = false;
+            });
+          } else {
+            setState(() {
+              _interaction = null;
+              _isLoading = false;
+              _isError = true;
+            });
+          }
+        },
+        onError: (err) {
+          if (!mounted) return;
           setState(() {
-            _interaction = doc.data()!..['id'] = doc.id;
+            _interaction = null;
             _isLoading = false;
-            _isError = false;
+            _isError = true;
           });
-        } else {
-          setState(() {
-            _interaction = _generateContextualData(widget.interactionId);
-            _isLoading = false;
-            _isError = false;
-          });
-        }
-      },
-      onError: (err) {
-        if (!mounted) return;
-        setState(() {
-          _interaction = _generateContextualData(widget.interactionId);
-          _isLoading = false;
-        });
-      },
-    );
+        },
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _interaction = _generateContextualData(widget.interactionId);
+        _interaction = null;
         _isLoading = false;
+        _isError = true;
       });
     }
-  }
-
-  Map<String, dynamic> _generateContextualData(String id) {
-    return {
-      'id': id,
-      'title': 'Strategic Relationship Encounter',
-      'type': 'Meeting',
-      'date': 'Recent Interaction',
-      'summary': 'In-depth strategic discussion regarding technical architecture, network synergies, and product roadmaps.',
-      'location': 'Virtual / Direct Sync',
-      'personName': 'Network Partner',
-      'personId': 'per_priya',
-      'claims': [
-        'Discussed platform scalability and real-time synchronization requirements.',
-        'Aligned on quarterly milestones and partnership touchpoints.',
-      ],
-      'followUps': [
-        'Share revised architecture whitepaper and design tokens.',
-        'Confirm follow-up demonstration next Tuesday.',
-      ],
-    };
   }
 
   @override
@@ -136,11 +119,14 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: RecallrColors.aiElectricViolet))
+          ? const Center(
+              child: CircularProgressIndicator(
+                  color: RecallrColors.aiElectricViolet))
           : _isError
               ? Center(
                   child: RecallrErrorState(
-                    message: "Unable to load encounter record. Please try again.",
+                    message:
+                        "Unable to load encounter record. Please try again.",
                     onRetry: _fetchInteraction,
                   ),
                 )
@@ -149,13 +135,16 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
   }
 
   Widget _buildDossierBody() {
-    final data = _interaction ?? _generateContextualData(widget.interactionId);
+    final data = _interaction!;
     final title = data['title']?.toString() ?? 'Encounter';
-    final summary = data['summary']?.toString() ?? 'No encounter summary recorded.';
+    final summary =
+        data['summary']?.toString() ?? 'No encounter summary recorded.';
     final personName = data['personName']?.toString();
     final personId = data['personId']?.toString();
-    final claims = (data['claims'] as List?)?.map((e) => e.toString()).toList() ?? [];
-    final followUps = (data['followUps'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final claims =
+        (data['claims'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final followUps =
+        (data['followUps'] as List?)?.map((e) => e.toString()).toList() ?? [];
 
     return Center(
       child: ConstrainedBox(
@@ -171,28 +160,35 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       RecallrBadge(
-                        text: (data['type']?.toString() ?? 'MEETING').toUpperCase(),
+                        text: (data['type']?.toString() ?? 'MEETING')
+                            .toUpperCase(),
                         variant: RecallrBadgeVariant.pending,
                       ),
                       Text(
                         data['date']?.toString() ?? 'Recent',
-                        style: RecallrTypography.monoMetadata.copyWith(color: RecallrColors.textTertiary),
+                        style: RecallrTypography.monoMetadata
+                            .copyWith(color: RecallrColors.textTertiary),
                       ),
                     ],
                   ),
                   RecallrSpacing.gapMd,
                   Text(title, style: RecallrTypography.headlineMedium),
                   RecallrSpacing.gapSm,
-                  Text(summary, style: RecallrTypography.bodyLarge.copyWith(color: RecallrColors.textSecondary)),
+                  Text(summary,
+                      style: RecallrTypography.bodyLarge
+                          .copyWith(color: RecallrColors.textSecondary)),
                   if (personName != null) ...[
                     RecallrSpacing.gapLg,
                     InkWell(
                       onTap: personId != null
-                          ? () => Navigator.of(context).pushNamed('/person/$personId')
+                          ? () => Navigator.of(context)
+                              .pushNamed('/person/$personId')
                           : null,
                       borderRadius: RecallrRadii.radiusSm,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: RecallrSpacing.sm, vertical: RecallrSpacing.xs),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: RecallrSpacing.sm,
+                            vertical: RecallrSpacing.xs),
                         decoration: BoxDecoration(
                           color: RecallrColors.slateSurface,
                           borderRadius: RecallrRadii.radiusSm,
@@ -201,14 +197,18 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.person_outline_rounded, size: 16, color: RecallrColors.aiCyanHighlight),
+                            const Icon(Icons.person_outline_rounded,
+                                size: 16, color: RecallrColors.aiCyanHighlight),
                             RecallrSpacing.gapXs,
                             Text(
                               personName,
-                              style: RecallrTypography.bodyMedium.copyWith(color: RecallrColors.aiCyanHighlight, fontWeight: FontWeight.w600),
+                              style: RecallrTypography.bodyMedium.copyWith(
+                                  color: RecallrColors.aiCyanHighlight,
+                                  fontWeight: FontWeight.w600),
                             ),
                             RecallrSpacing.gapXs,
-                            const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: RecallrColors.textTertiary),
+                            const Icon(Icons.arrow_forward_ios_rounded,
+                                size: 12, color: RecallrColors.textTertiary),
                           ],
                         ),
                       ),
@@ -218,9 +218,9 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
               ),
             ),
             RecallrSpacing.gapLg,
-
             if (claims.isNotEmpty) ...[
-              Text('Extracted Relationship Memory', style: RecallrTypography.titleMedium),
+              Text('Extracted Relationship Memory',
+                  style: RecallrTypography.titleMedium),
               RecallrSpacing.gapSm,
               ...claims.map((claim) => Padding(
                     padding: const EdgeInsets.only(bottom: RecallrSpacing.xs),
@@ -228,10 +228,12 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.verified_outlined, size: 16, color: RecallrColors.emeraldVerified),
+                          const Icon(Icons.verified_outlined,
+                              size: 16, color: RecallrColors.emeraldVerified),
                           RecallrSpacing.gapSm,
                           Expanded(
-                            child: Text(claim, style: RecallrTypography.bodyMedium),
+                            child: Text(claim,
+                                style: RecallrTypography.bodyMedium),
                           ),
                         ],
                       ),
@@ -239,7 +241,6 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
                   )),
               RecallrSpacing.gapLg,
             ],
-
             if (followUps.isNotEmpty) ...[
               Text('Action Commitments', style: RecallrTypography.titleMedium),
               RecallrSpacing.gapSm,
@@ -249,10 +250,12 @@ class _InteractionDossierScreenState extends State<InteractionDossierScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.task_alt_rounded, size: 16, color: RecallrColors.warmAmberGold),
+                          const Icon(Icons.task_alt_rounded,
+                              size: 16, color: RecallrColors.warmAmberGold),
                           RecallrSpacing.gapSm,
                           Expanded(
-                            child: Text(fu, style: RecallrTypography.bodyMedium),
+                            child:
+                                Text(fu, style: RecallrTypography.bodyMedium),
                           ),
                         ],
                       ),

@@ -86,10 +86,11 @@ void main() {
 
       await tester.enterText(find.byType(TextField), 'What did I discuss with Priya about RISC-V?');
       await tester.pump();
-      await tester.tap(find.text('Ask Memory'));
-      await tester.pumpAndSettle();
+       await tester.tap(find.text('Ask Memory'));
+       await tester.pumpAndSettle();
 
-      expect(find.byType(GroundedAnswerCard), findsOneWidget);
+       expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
+       expect(find.byType(GroundedAnswerCard), findsOneWidget);
       expect(find.textContaining('Priya Sharma'), findsWidgets);
     });
 

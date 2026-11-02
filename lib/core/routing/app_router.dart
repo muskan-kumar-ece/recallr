@@ -5,7 +5,6 @@ import 'recallr_routes.dart';
 import '../theme/theme.dart';
 import '../widgets/widgets.dart';
 import '../../app/app_shell.dart';
-import '../../screens/auth_screen.dart';
 import '../../screens/entities/company_dossier_screen.dart';
 import '../../screens/entities/event_dossier_screen.dart';
 import '../../screens/entities/file_dossier_screen.dart';
@@ -18,6 +17,11 @@ import '../../screens/follow_ups/follow_ups_screen.dart';
 import '../../screens/network/network_dashboard_screen.dart';
 import '../../screens/person/person_detail_screen.dart';
 import '../../screens/capture/capture_detail_screen.dart';
+import '../../screens/cards/card_editor_screen.dart';
+import '../../screens/cards/public_card_screen.dart';
+import '../../screens/cards/scan_card_screen.dart';
+import '../../screens/categories/categories_screen.dart';
+import '../../screens/auth_screen.dart';
 
 /// Central Route Generator and Deep-Link Parser for Recallr.
 class AppRouter {
@@ -27,13 +31,19 @@ class AppRouter {
     final uri = Uri.parse(settings.name ?? RecallrRoutes.initial);
     final path = uri.path;
 
+    if (uri.pathSegments.length == 2 && uri.pathSegments.first == 'card') {
+      return _buildRoute(
+          PublicCardScreen(cardId: uri.pathSegments.last), settings);
+    }
+
     User? user;
     try {
       user = FirebaseAuth.instance.currentUser;
     } catch (_) {
       user = null;
     }
-    const bool allowPreview = bool.fromEnvironment('ALLOW_ANONYMOUS_PREVIEW', defaultValue: false);
+    const bool allowPreview =
+        bool.fromEnvironment('ALLOW_ANONYMOUS_PREVIEW', defaultValue: false);
     final bool isAuthenticated = user != null || allowPreview;
 
     // Public / Auth Route
@@ -51,10 +61,23 @@ class AppRouter {
 
     // Primary Root & App Shell Tabs (Home, People, Ask, Activity)
     if (path == RecallrRoutes.initial || path == RecallrRoutes.home) {
-      return _buildRoute(RecallrAppShell(user: user, initialIndex: 0), settings);
+      return _buildRoute(
+          RecallrAppShell(user: user, initialIndex: 0), settings);
+    }
+    if (path == '/my-card')
+      return _buildRoute(const CardEditorScreen(), settings);
+    if (path == '/scan-card')
+      return _buildRoute(const ScanCardScreen(), settings);
+    if (path == '/categories')
+      return _buildRoute(const CategoriesScreen(), settings);
+    if (uri.pathSegments.length == 2 && uri.pathSegments.first == 'save-card') {
+      return _buildRoute(
+          PublicCardScreen(cardId: uri.pathSegments.last, saveOnOpen: true),
+          settings);
     }
     if (path == RecallrRoutes.people) {
-      return _buildRoute(RecallrAppShell(user: user, initialIndex: 1), settings);
+      return _buildRoute(
+          RecallrAppShell(user: user, initialIndex: 1), settings);
     }
     if (path == RecallrRoutes.ask) {
       return _buildRoute(

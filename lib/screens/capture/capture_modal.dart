@@ -25,6 +25,8 @@ import '../../repositories/people_repository.dart';
 import '../../features/people/models/person_item.dart';
 import '../../services/ocr/ocr_service.dart';
 import '../../services/ocr/ocr_entity_extractor.dart';
+import '../../features/categories/widgets/save_organize_sheet.dart';
+import 'package:app_settings/app_settings.dart';
 
 class CaptureModal extends StatefulWidget {
   final bool isEmpty;
@@ -73,6 +75,11 @@ class _CaptureModalState extends State<CaptureModal> {
   bool _isPickingMedia = false;
   bool _isMicPermDenied = false;
   bool _isSaving = false;
+  bool _organizing = false;
+  bool _voiceBusy = false;
+  String? _captureId;
+  List<String> _categoryIds = [];
+  AudioRecorderService? _activeRecorder;
 
   // Controllers for Note
   final TextEditingController _noteTitleController = TextEditingController();
@@ -101,42 +108,55 @@ class _CaptureModalState extends State<CaptureModal> {
   CaptureRepository get _captureRepo =>
       widget.repository ??
       widget.captureRepository ??
-      (mounted ? context.captureRepo : RecallrDependencies.instance.captureRepository);
+      (mounted
+          ? context.captureRepo
+          : RecallrDependencies.instance.captureRepository);
 
   MediaStorageRepository get _mediaStorageRepo =>
       widget.mediaStorageRepository ??
-      (mounted ? context.mediaStorageRepo : RecallrDependencies.instance.mediaStorageRepository);
+      (mounted
+          ? context.mediaStorageRepo
+          : RecallrDependencies.instance.mediaStorageRepository);
 
   CaptureProcessingRepository? get _captureProcessingRepo =>
       widget.captureProcessingRepository ??
-      (mounted ? context.dependencies.captureProcessingRepository : RecallrDependencies.instance.captureProcessingRepository);
+      (mounted
+          ? context.dependencies.captureProcessingRepository
+          : RecallrDependencies.instance.captureProcessingRepository);
 
   MediaPickerService get _mediaPicker =>
       widget.mediaPickerService ??
-      (mounted ? context.mediaPickerService : RecallrDependencies.instance.mediaPickerService);
+      (mounted
+          ? context.mediaPickerService
+          : RecallrDependencies.instance.mediaPickerService);
 
   AudioRecorderService get _audioRecorder =>
       widget.audioRecorderService ??
-      (mounted ? context.audioRecorderService : RecallrDependencies.instance.audioRecorderService);
+      (mounted
+          ? context.audioRecorderService
+          : RecallrDependencies.instance.audioRecorderService);
 
   OcrService get _ocrService =>
       widget.ocrService ??
       (mounted ? context.ocrService : RecallrDependencies.instance.ocrService);
 
-  PeopleRepository get _peopleRepo =>
-      (mounted ? context.peopleRepo : RecallrDependencies.instance.peopleRepository);
+  PeopleRepository get _peopleRepo => (mounted
+      ? context.peopleRepo
+      : RecallrDependencies.instance.peopleRepository);
 
   @override
   void initState() {
     super.initState();
     _state = widget.isError ? CaptureState.error : CaptureState.idle;
-    _errorMessage = widget.errorMessage ?? 'An error occurred. Please try again.';
+    _errorMessage =
+        widget.errorMessage ?? 'An error occurred. Please try again.';
     _recentCaptures = widget.initialCaptures ?? [];
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _activeRecorder ??= _audioRecorder;
     if (widget.initialCaptures == null && !widget.isEmpty && !widget.isError) {
       _subscribeToRecentCaptures();
     }
@@ -159,7 +179,7 @@ class _CaptureModalState extends State<CaptureModal> {
   @override
   void dispose() {
     if (_isRecordingVoice) {
-      _audioRecorder.cancelRecording();
+      _activeRecorder?.cancelRecording();
     }
     _recentSubscription?.cancel();
     _voiceDurationSub?.cancel();
@@ -176,7 +196,12 @@ class _CaptureModalState extends State<CaptureModal> {
   }
 
   void _selectType(CaptureType type) {
+    _activeRecorder?.cancelRecording();
+    _voiceDurationSub?.cancel();
     setState(() {
+      _captureId = null;
+      _reviewData = null;
+      _categoryIds = [];
       _activeType = type;
       _state = CaptureState.capturing;
       _pickedMediaFile = null;
@@ -198,9 +223,15 @@ class _CaptureModalState extends State<CaptureModal> {
       );
       final entities = OcrEntityExtractor.extract(ocrResult.text);
       final personName = entities.name;
-      final nameConfidence = entities.confidence['name'] ?? (personName != null ? 0.9 : 0.0);
-      final needsConfirmation = nameConfidence < 0.7 || personName == null || personName.trim().isEmpty;
-      final displayTitle = personName ?? (entities.company != null && entities.company!.isNotEmpty ? entities.company! : 'Business Card');
+      final nameConfidence =
+          entities.confidence['name'] ?? (personName != null ? 0.9 : 0.0);
+      final needsConfirmation = nameConfidence < 0.7 ||
+          personName == null ||
+          personName.trim().isEmpty;
+      final displayTitle = personName ??
+          (entities.company != null && entities.company!.isNotEmpty
+              ? entities.company!
+              : 'Business Card');
       final confidenceVal = nameConfidence * 100.0;
 
       reviewData = CaptureReviewData(
@@ -219,7 +250,8 @@ class _CaptureModalState extends State<CaptureModal> {
         bulletPoints: entities.keyPoints.isNotEmpty
             ? entities.keyPoints
             : [
-                if (entities.brands.isNotEmpty) 'Brands: ${entities.brands.join(', ')}',
+                if (entities.brands.isNotEmpty)
+                  'Brands: ${entities.brands.join(', ')}',
                 'Card text detected with ${confidenceVal.toStringAsFixed(1)}% name confidence',
                 if (entities.company != null && entities.company!.isNotEmpty)
                   '${entities.company} matched in network database',
@@ -333,12 +365,6 @@ class _CaptureModalState extends State<CaptureModal> {
       // CAP-P0-4: Use a real document picker for document type, not image gallery.
       final picked = await _mediaPicker.pickDocument();
       if (picked == null && mounted) {
-        // Document picker not available on this platform/build — show honest error.
-        setState(() {
-          _state = CaptureState.error;
-          _errorMessage = 'Document selection is not available on this device. '
-              'Please use photo capture instead.';
-        });
         return;
       }
       if (picked != null && mounted) {
@@ -362,7 +388,11 @@ class _CaptureModalState extends State<CaptureModal> {
     if (_isPickingMedia) return;
     _isPickingMedia = true;
     try {
-      final picked = _pickedMediaFile ?? await _mediaPicker.pickFromGallery();
+      final picked = _pickedMediaFile ??
+          (type == CaptureType.document
+              ? await _mediaPicker.pickDocument()
+              : await _mediaPicker.pickFromGallery());
+      if (picked == null) return;
       _pickedMediaFile = picked;
 
       String? extractedTitle;
@@ -374,56 +404,68 @@ class _CaptureModalState extends State<CaptureModal> {
       List<String> extractedKeyPoints = [];
       Map<String, String> extractedContactDetails = {};
 
-      if (picked != null) {
-        try {
-          final ocrResult = await _ocrService.extractText(
-            mediaPath: picked.path,
-            mimeType: picked.mimeType,
-          );
-          if (ocrResult.text.trim().isNotEmpty) {
-            final entities = OcrEntityExtractor.extract(ocrResult.text);
-            extractedPersonName = entities.name;
-            extractedRole = entities.role ?? (entities.name != null ? 'Contact' : null);
-            extractedCompany = entities.company;
-            extractedLocation = entities.location;
-            if (entities.email != null) extractedContactDetails['email'] = entities.email!;
-            if (entities.phone != null) extractedContactDetails['phone'] = entities.phone!;
-            if (entities.website != null) extractedContactDetails['website'] = entities.website!;
+      try {
+        final ocrResult = await _ocrService.extractText(
+          mediaPath: picked.path,
+          mimeType: picked.mimeType,
+        );
+        if (ocrResult.text.trim().isNotEmpty) {
+          final entities = OcrEntityExtractor.extract(ocrResult.text);
+          extractedPersonName = entities.name;
+          extractedRole =
+              entities.role ?? (entities.name != null ? 'Contact' : null);
+          extractedCompany = entities.company;
+          extractedLocation = entities.location;
+          if (entities.email != null)
+            extractedContactDetails['email'] = entities.email!;
+          if (entities.phone != null)
+            extractedContactDetails['phone'] = entities.phone!;
+          if (entities.website != null)
+            extractedContactDetails['website'] = entities.website!;
 
-            extractedKeyPoints = entities.keyPoints.isNotEmpty
-                ? entities.keyPoints
-                : ocrResult.text.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).take(5).toList();
+          extractedKeyPoints = entities.keyPoints.isNotEmpty
+              ? entities.keyPoints
+              : ocrResult.text
+                  .split('\n')
+                  .map((l) => l.trim())
+                  .where((l) => l.isNotEmpty)
+                  .take(5)
+                  .toList();
 
-            if (entities.name != null && entities.name!.isNotEmpty) {
-              extractedTitle = entities.name;
-              extractedSummary = 'Photo capture with extracted contact details: ${entities.name}${entities.company != null ? ' at ${entities.company}' : ''}.';
-            } else if (ocrResult.text.trim().isNotEmpty) {
-              final firstLine = ocrResult.text.trim().split('\n').first.trim();
-              if (firstLine.length <= 40) {
-                extractedTitle = firstLine;
-              }
-              extractedSummary = ocrResult.text.trim();
+          if (entities.name != null && entities.name!.isNotEmpty) {
+            extractedTitle = entities.name;
+            extractedSummary =
+                'Photo capture with extracted contact details: ${entities.name}${entities.company != null ? ' at ${entities.company}' : ''}.';
+          } else if (ocrResult.text.trim().isNotEmpty) {
+            final firstLine = ocrResult.text.trim().split('\n').first.trim();
+            if (firstLine.length <= 40) {
+              extractedTitle = firstLine;
             }
+            extractedSummary = ocrResult.text.trim();
           }
-        } catch (e) {
-          debugPrint('[Capture] Optical extraction notice: $e');
         }
+      } catch (e) {
+        debugPrint('[Capture] Optical extraction notice: $e');
       }
-
       if (mounted) {
         final title = _photoTitleController.text.isNotEmpty
             ? _photoTitleController.text
-            : (extractedTitle ?? (type == CaptureType.photo ? 'Photo Capture' : 'Document Upload'));
+            : (extractedTitle ??
+                (type == CaptureType.photo
+                    ? 'Photo Capture'
+                    : 'Document Upload'));
         final summary = _photoNoteController.text.isNotEmpty
             ? _photoNoteController.text
-            : (extractedSummary ?? (picked != null ? 'Uploaded file (${picked.name}).' : 'Uploaded document context.'));
+            : (extractedSummary ?? 'Uploaded file (${picked.name}).');
 
         setState(() {
           _state = CaptureState.review;
           _reviewData = CaptureReviewData(
             title: title,
             summary: summary,
-            personName: extractedPersonName,
+            personName: _photoContextController.text.trim().isNotEmpty
+                ? _photoContextController.text.trim()
+                : extractedPersonName,
             personRole: extractedRole,
             companyName: extractedCompany,
             location: extractedLocation,
@@ -459,7 +501,11 @@ class _CaptureModalState extends State<CaptureModal> {
       _state = CaptureState.review;
       _reviewData = CaptureReviewData(
         title: title.isNotEmpty ? title : 'Professional Note',
-        summary: note.isNotEmpty ? note : (person.isNotEmpty ? 'Met with $person' : (title.isNotEmpty ? title : 'Encounter note')),
+        summary: note.isNotEmpty
+            ? note
+            : (person.isNotEmpty
+                ? 'Met with $person'
+                : (title.isNotEmpty ? title : 'Encounter note')),
         personName: person.isNotEmpty ? person : null,
         companyName: company.isNotEmpty ? company : null,
         eventName: event.isNotEmpty ? event : null,
@@ -471,67 +517,74 @@ class _CaptureModalState extends State<CaptureModal> {
   }
 
   Future<void> _toggleVoiceRecording() async {
-    if (_isRecordingVoice) {
-      _voiceDurationSub?.cancel();
-      try {
-        final file = await _audioRecorder.stopRecording();
-        _recordedAudioFile = file;
-      } catch (_) {}
-      if (mounted) {
-        setState(() {
-          _isRecordingVoice = false;
-        });
-      }
-    } else {
-      try {
-        final hasPermission = await _audioRecorder.hasPermission();
-        if (!hasPermission) {
+    if (_voiceBusy) return;
+    _voiceBusy = true;
+    try {
+      if (_isRecordingVoice) {
+        _voiceDurationSub?.cancel();
+        try {
+          final file = await _audioRecorder.stopRecording();
+          _recordedAudioFile = file;
+        } catch (_) {}
+        if (mounted) {
+          setState(() {
+            _isRecordingVoice = false;
+          });
+        }
+      } else {
+        try {
+          final hasPermission = await _audioRecorder.hasPermission();
+          if (!hasPermission) {
+            if (mounted) {
+              setState(() {
+                _state = CaptureState.error;
+                _isMicPermDenied = true;
+                _errorMessage =
+                    'Recallr needs microphone access to record voice memos. '
+                    'Please allow microphone access in your device settings.';
+              });
+            }
+            return;
+          }
+          await _audioRecorder.startRecording();
+          if (mounted) {
+            setState(() {
+              _isRecordingVoice = true;
+              _isMicPermDenied = false;
+              _voiceDurationSeconds = 0;
+            });
+            _voiceDurationSub?.cancel();
+            _voiceDurationSub =
+                _audioRecorder.durationStream.listen((duration) {
+              if (mounted) {
+                setState(() {
+                  _voiceDurationSeconds = duration.inSeconds;
+                });
+              }
+            });
+          }
+        } on PlatformException catch (e) {
           if (mounted) {
             setState(() {
               _state = CaptureState.error;
-              _isMicPermDenied = true;
-              _errorMessage =
-                  'Recallr needs microphone access to record voice memos. '
-                  'Please allow microphone access in your device settings.';
+              _isMicPermDenied = e.code == 'PERMISSION_DENIED';
+              _errorMessage = e.code == 'PERMISSION_DENIED'
+                  ? 'Recallr needs microphone access to record voice memos. '
+                      'Please allow microphone access in your device settings.'
+                  : 'Could not start recording. Please try again.';
             });
           }
-          return;
-        }
-        await _audioRecorder.startRecording();
-        if (mounted) {
-          setState(() {
-            _isRecordingVoice = true;
-            _isMicPermDenied = false;
-            _voiceDurationSeconds = 0;
-          });
-          _voiceDurationSub?.cancel();
-          _voiceDurationSub = _audioRecorder.durationStream.listen((duration) {
-            if (mounted) {
-              setState(() {
-                _voiceDurationSeconds = duration.inSeconds;
-              });
-            }
-          });
-        }
-      } on PlatformException catch (e) {
-        if (mounted) {
-          setState(() {
-            _state = CaptureState.error;
-            _isMicPermDenied = e.code == 'PERMISSION_DENIED';
-            _errorMessage = e.code == 'PERMISSION_DENIED'
-                ? 'Recallr needs microphone access to record voice memos. '
-                  'Please allow microphone access in your device settings.'
-                : 'Could not start recording. Please try again.';
-          });
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _state = CaptureState.error;
-            _errorMessage = 'Could not start recording. Please try again.';
-          });
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _state = CaptureState.error;
+              _errorMessage = 'Could not start recording. Please try again.';
+            });
+          }
         }
       }
+    } finally {
+      _voiceBusy = false;
     }
   }
 
@@ -611,7 +664,10 @@ class _CaptureModalState extends State<CaptureModal> {
 
   Future<void> _saveCapture() async {
     // CAP-P1-3: Guard against duplicate submission or zombie saves.
-    if (_isSaving || _state == CaptureState.saving || _reviewData == null || _activeType == null) return;
+    if (_isSaving ||
+        _state == CaptureState.saving ||
+        _reviewData == null ||
+        _activeType == null) return;
     _isSaving = true;
 
     if (!mounted) return;
@@ -619,7 +675,11 @@ class _CaptureModalState extends State<CaptureModal> {
       _state = CaptureState.saving;
     });
 
-    final captureId = 'cap_${DateTime.now().millisecondsSinceEpoch}';
+    final captureId =
+        _captureId ??= 'cap_${DateTime.now().microsecondsSinceEpoch}';
+    final captureRepo = _captureRepo;
+    final storageRepo = _mediaStorageRepo;
+    final peopleRepo = _peopleRepo;
     String? storagePath;
     String? mediaUrl;
     String? mimeType;
@@ -633,7 +693,7 @@ class _CaptureModalState extends State<CaptureModal> {
         mimeType = _pickedMediaFile!.mimeType;
         fileSize = _pickedMediaFile!.size;
         try {
-          final uploadResult = await _mediaStorageRepo.uploadCaptureImage(
+          final uploadResult = await storageRepo.uploadCaptureImage(
             captureId: captureId,
             file: _pickedMediaFile!,
           );
@@ -642,17 +702,14 @@ class _CaptureModalState extends State<CaptureModal> {
           mimeType = uploadResult.mimeType;
           fileSize = uploadResult.fileSize;
         } catch (storageErr) {
-          if (_activeType == CaptureType.photo && widget.mediaStorageRepository != null) {
-            rethrow;
-          }
-          debugPrint('[Capture] Storage upload skipped/failed: $storageErr');
+          rethrow;
         }
       } else if (_recordedAudioFile != null) {
         // CAP-P3: Only upload real recorded audio — never a synthetic fallback.
         mimeType = _recordedAudioFile!.mimeType;
         fileSize = _recordedAudioFile!.size;
         try {
-          final uploadResult = await _mediaStorageRepo.uploadCaptureAudio(
+          final uploadResult = await storageRepo.uploadCaptureAudio(
             captureId: captureId,
             file: _recordedAudioFile!,
           );
@@ -661,13 +718,14 @@ class _CaptureModalState extends State<CaptureModal> {
           mimeType = uploadResult.mimeType;
           fileSize = uploadResult.fileSize;
         } catch (storageErr) {
-          debugPrint('[Capture] Audio upload skipped/failed: $storageErr');
+          rethrow;
         }
       }
 
       // Immediate Person Directory persistence for contacts
       String? linkedPersonId;
-      if (_reviewData!.personName != null && _reviewData!.personName!.trim().isNotEmpty) {
+      if (_reviewData!.personName != null &&
+          _reviewData!.personName!.trim().isNotEmpty) {
         try {
           final personName = _reviewData!.personName!.trim();
           final email = _reviewData!.contactDetails['email'];
@@ -677,16 +735,28 @@ class _CaptureModalState extends State<CaptureModal> {
 
           PersonItem? existing;
           if (email != null && email.isNotEmpty) {
-            existing = await _peopleRepo.findPersonByEmail(email);
+            existing = await peopleRepo.findPersonByEmail(email);
           }
           if (existing == null && phone != null && phone.isNotEmpty) {
-            existing = await _peopleRepo.findPersonByPhone(phone);
+            existing = await peopleRepo.findPersonByPhone(phone);
+          }
+
+          if (existing == null) {
+            final matches = company.isNotEmpty
+                ? await peopleRepo.findCandidatesByNameAndCompany(
+                    personName, company)
+                : await peopleRepo.findCandidatesByName(personName);
+            if (matches.length == 1) existing = matches.first;
+            if (matches.length > 1)
+              throw StateError(
+                  'Several contacts match. Add email or phone to identify the person.');
           }
 
           if (existing != null) {
             linkedPersonId = existing.id;
           } else {
             final newPerson = PersonItem(
+              categoryIds: _categoryIds,
               id: 'per_cap_$captureId',
               name: personName,
               role: role,
@@ -702,15 +772,16 @@ class _CaptureModalState extends State<CaptureModal> {
               brands: _reviewData!.brands,
               relationshipType: RelationshipContextType.collaborator,
             );
-            final created = await _peopleRepo.createPersonFromCapture(newPerson);
+            final created = await peopleRepo.createPersonFromCapture(newPerson);
             linkedPersonId = created.id;
           }
         } catch (personErr) {
-          debugPrint('[Capture] Immediate contact creation note: $personErr');
+          rethrow;
         }
       }
 
       final item = CaptureItem(
+        categoryIds: _categoryIds,
         id: captureId,
         type: _activeType!,
         title: _reviewData!.title,
@@ -742,11 +813,12 @@ class _CaptureModalState extends State<CaptureModal> {
 
       CaptureItem savedItem;
       try {
-        savedItem = await _captureRepo.saveCapture(item);
+        savedItem = await captureRepo.saveCapture(item);
       } catch (saveError) {
         if (storagePath != null) {
           try {
-            await _mediaStorageRepo.deleteCaptureMedia(captureId: captureId, storagePath: storagePath);
+            await storageRepo.deleteCaptureMedia(
+                captureId: captureId, storagePath: storagePath);
           } catch (_) {}
         }
         rethrow;
@@ -774,9 +846,11 @@ class _CaptureModalState extends State<CaptureModal> {
         setState(() {
           _state = CaptureState.error;
           if (isQuota) {
-            _errorMessage = 'Cloud storage limit reached. You can upgrade to Pro for 1.5 GB in Settings, or save contact details directly without cloud photo.';
+            _errorMessage =
+                'Cloud storage limit reached. You can upgrade to Pro for 1.5 GB in Settings, or save contact details directly without cloud photo.';
           } else if (isStorageIssue) {
-            _errorMessage = 'Could not upload media to Cloud Storage. Please ensure Firebase Storage is initialized in Firebase Console, or save contact details directly.';
+            _errorMessage =
+                'Could not upload media to Cloud Storage. Please ensure Firebase Storage is initialized in Firebase Console, or save contact details directly.';
           } else {
             _errorMessage = 'Failed to save capture. Please try again.';
           }
@@ -788,7 +862,11 @@ class _CaptureModalState extends State<CaptureModal> {
   }
 
   Future<void> _saveWithoutStorage() async {
-    if (_reviewData == null || _activeType == null) return;
+    if (_isSaving ||
+        _state == CaptureState.saving ||
+        _reviewData == null ||
+        _activeType == null) return;
+    _isSaving = true;
     setState(() {
       _state = CaptureState.saving;
     });
@@ -796,7 +874,8 @@ class _CaptureModalState extends State<CaptureModal> {
     final captureId = 'cap_${DateTime.now().millisecondsSinceEpoch}';
 
     String? linkedPersonId;
-    if (_reviewData!.personName != null && _reviewData!.personName!.trim().isNotEmpty) {
+    if (_reviewData!.personName != null &&
+        _reviewData!.personName!.trim().isNotEmpty) {
       try {
         final personName = _reviewData!.personName!.trim();
         final email = _reviewData!.contactDetails['email'];
@@ -888,6 +967,8 @@ class _CaptureModalState extends State<CaptureModal> {
           _errorMessage = 'Could not save capture to database: $e';
         });
       }
+    } finally {
+      _isSaving = false;
     }
   }
 
@@ -902,9 +983,12 @@ class _CaptureModalState extends State<CaptureModal> {
         ),
         title: Row(
           children: [
-            const Icon(Icons.delete_outline_rounded, color: RecallrColors.crimsonAlert, size: 22),
+            const Icon(Icons.delete_outline_rounded,
+                color: RecallrColors.crimsonAlert, size: 22),
             const SizedBox(width: 8),
-            Text('Delete Capture', style: RecallrTypography.titleMedium.copyWith(fontWeight: FontWeight.w700)),
+            Text('Delete Capture',
+                style: RecallrTypography.titleMedium
+                    .copyWith(fontWeight: FontWeight.w700)),
           ],
         ),
         content: Text(
@@ -914,14 +998,16 @@ class _CaptureModalState extends State<CaptureModal> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: RecallrColors.textTertiary)),
+            child: const Text('Cancel',
+                style: TextStyle(color: RecallrColors.textTertiary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: RecallrColors.crimsonAlert.withAlpha(40),
               foregroundColor: RecallrColors.crimsonAlert,
               elevation: 0,
-              side: const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
+              side:
+                  const BorderSide(color: RecallrColors.crimsonAlert, width: 1),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Delete'),
@@ -933,6 +1019,20 @@ class _CaptureModalState extends State<CaptureModal> {
     if (confirmed == true && mounted) {
       try {
         await _captureRepo.deleteCapture(item.id);
+        if (item.storagePath != null && item.storagePath!.isNotEmpty) {
+          try {
+            await _mediaStorageRepo.deleteCaptureMedia(
+                captureId: item.id, storagePath: item.storagePath!);
+            if (item.fileSize != null && item.fileSize! > 0) {
+              await (mounted
+                      ? context.subscriptionRepo
+                      : RecallrDependencies.instance.subscriptionRepository)
+                  .updateStorageUsage(deltaBytes: -item.fileSize!);
+            }
+          } catch (cleanupError) {
+            debugPrint('[Capture] Media cleanup notice: $cleanupError');
+          }
+        }
         if (mounted) {
           setState(() {
             _recentCaptures.removeWhere((c) => c.id == item.id);
@@ -947,7 +1047,9 @@ class _CaptureModalState extends State<CaptureModal> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete capture: $e'), backgroundColor: RecallrColors.crimsonAlert),
+            SnackBar(
+                content: Text('Failed to delete capture: $e'),
+                backgroundColor: RecallrColors.crimsonAlert),
           );
         }
       }
@@ -959,7 +1061,8 @@ class _CaptureModalState extends State<CaptureModal> {
     return Container(
       decoration: const BoxDecoration(
         color: RecallrColors.charcoalCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(RecallrRadii.lg)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(RecallrRadii.lg)),
       ),
       child: SafeArea(
         top: false,
@@ -978,21 +1081,28 @@ class _CaptureModalState extends State<CaptureModal> {
                 CaptureHeader(
                   state: _state,
                   activeType: _activeType,
-                  onClose: () {
-                    if (widget.onClose != null) {
-                      widget.onClose!();
-                    } else if (Navigator.of(context).canPop()) {
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  onBack: _state != CaptureState.idle
-                      ? () => setState(() {
+                  onClose: _isSaving
+                      ? null
+                      : () {
+                          if (widget.onClose != null) {
+                            widget.onClose!();
+                          } else if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                  onBack: !_isSaving && _state != CaptureState.idle
+                      ? () {
+                          _activeRecorder?.cancelRecording();
+                          _voiceDurationSub?.cancel();
+                          setState(() {
+                            _isRecordingVoice = false;
                             _state = CaptureState.idle;
                             _activeType = null;
                             _pickedMediaFile = null;
                             _recordedAudioFile = null;
                             _processingStatus = null;
-                          })
+                          });
+                        }
                       : null,
                 ),
                 RecallrSpacing.gapMd,
@@ -1065,14 +1175,23 @@ class _CaptureModalState extends State<CaptureModal> {
           onCancel: () => setState(() => _state = CaptureState.idle),
         );
       case CaptureType.voice:
-        final minutes = (_voiceDurationSeconds ~/ 60).toString().padLeft(2, '0');
+        final minutes =
+            (_voiceDurationSeconds ~/ 60).toString().padLeft(2, '0');
         final seconds = (_voiceDurationSeconds % 60).toString().padLeft(2, '0');
         return VoiceCaptureView(
+          hasRecording: _recordedAudioFile != null,
           isRecording: _isRecordingVoice,
           durationText: '$minutes:$seconds',
           onToggleRecording: _toggleVoiceRecording,
           onProcessVoice: _processVoice,
-          onCancel: () => setState(() => _state = CaptureState.idle),
+          onCancel: () {
+            _activeRecorder?.cancelRecording();
+            _voiceDurationSub?.cancel();
+            setState(() {
+              _isRecordingVoice = false;
+              _state = CaptureState.idle;
+            });
+          },
         );
       case CaptureType.note:
         return QuickNoteCaptureView(
@@ -1111,7 +1230,7 @@ class _CaptureModalState extends State<CaptureModal> {
       type: _activeType ?? CaptureType.note,
       reviewData: _reviewData!,
       onEdit: () => setState(() => _state = CaptureState.capturing),
-      onSave: _saveCapture,
+      onSave: _organizeAndSave,
       onUpdateData: (newData) => setState(() => _reviewData = newData),
     );
   }
@@ -1191,14 +1310,35 @@ class _CaptureModalState extends State<CaptureModal> {
           ? () async {
               // Open device app settings so the user can grant microphone access.
               // Uses AppSettingsIntent on Android / UIApplication.openSettingsURL on iOS.
-              const channel = MethodChannel('recallr/app_settings');
               try {
-                await channel.invokeMethod<void>('openAppSettings');
+                await AppSettings.openAppSettings();
               } catch (_) {
                 // Fallback: no-op if the channel is not implemented in the host app
               }
             }
           : null,
     );
+  }
+
+  Future<void> _organizeAndSave() async {
+    if (_isSaving || _organizing || _reviewData == null) return;
+    _organizing = true;
+    try {
+      // Categories are optional for captures. Keep the established one-tap save
+      // path when the user has not created any categories yet; once categories
+      // exist, offer the shared organizer without blocking the save flow.
+      final categories = await context.dependencies.libraryRepository.categories().first;
+      if (categories.isEmpty) {
+        await _saveCapture();
+        return;
+      }
+      final selection = await SaveOrganizeSheet.show(context,
+          title: _reviewData!.title, initialCategories: _categoryIds);
+      if (selection == null || !mounted) return;
+      _categoryIds = selection.categoryIds;
+      await _saveCapture();
+    } finally {
+      _organizing = false;
+    }
   }
 }

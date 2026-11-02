@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/errors/data_exceptions.dart';
 
@@ -36,9 +37,8 @@ abstract class MediaPickerService {
   Future<PickedMediaFile?> pickDocument();
 }
 
-/// Production implementation of MediaPickerService utilizing the image_picker package.
-/// Document picking uses image_picker's gallery path with any-type selection as a
-/// best-effort fallback until a dedicated file_picker is integrated.
+/// Production implementation of MediaPickerService using image_picker for
+/// images and file_picker for real PDF document selection.
 class DeviceMediaPickerService implements MediaPickerService {
   final ImagePicker _picker;
 
@@ -112,10 +112,26 @@ class DeviceMediaPickerService implements MediaPickerService {
 
   @override
   Future<PickedMediaFile?> pickDocument() async {
-    // image_picker does not support arbitrary document picking.
-    // Return null to indicate the capability is unavailable on this platform/build.
-    // Integrate a dedicated file picker package to enable real document selection.
-    return null;
+    try {
+      final picked = await FilePicker.pickFile(
+        dialogTitle: 'Select a PDF memory',
+        type: FileType.custom,
+        allowedExtensions: const ['pdf'],
+      );
+      if (picked == null) return null;
+      final bytes = await picked.readAsBytes();
+      final size = await picked.length() ?? bytes.length;
+
+      return PickedMediaFile(
+        path: picked.path ?? '',
+        name: picked.name,
+        size: size,
+        mimeType: 'application/pdf',
+        bytes: bytes,
+      );
+    } catch (e, st) {
+      throw RecallrDataException.fromException(e, st);
+    }
   }
 }
 

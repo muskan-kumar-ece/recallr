@@ -7,6 +7,9 @@ import * as crypto from "crypto";
 
 initializeApp();
 
+export { saveNetworkCategory, deleteNetworkCategory, categorizeNetworkItem,
+  publishVisitingCard, unpublishVisitingCard, importVisitingCard, publicVisitingCard } from './card_network';
+
 const db = getFirestore();
 
 // Secret Manager binding for Gemini API Key
@@ -176,17 +179,18 @@ export const generateGroundedAnswer = onCall(
       });
     });
 
-    // 4. Retrieve API Key securely from Secret Manager (or fallback to env in local emulator)
-    const apiKey = geminiApiKey.value() || process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey.trim().length === 0) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Server configuration error: Gemini API secret is not configured in Secret Manager."
-      );
-    }
-
-    // 5. Invoke Gemini via official Node.js SDK
+    // 4. Retrieve the API key and invoke Gemini. Keep both inside the
+    // compensating try/catch so configuration and upstream failures refund
+    // the reserved credit as well.
     try {
+      const apiKey = geminiApiKey.value() || process.env.GEMINI_API_KEY;
+      if (!apiKey || apiKey.trim().length === 0) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Server configuration error: Gemini API secret is not configured in Secret Manager."
+        );
+      }
+
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({
         model: modelName,
@@ -435,8 +439,12 @@ export const createRazorpayOrder = onCall(
           throw new HttpsError("internal", `Payment gateway error: ${resp.status}`);
         }
 
-        const data: any = await resp.json();
-        return {
+          const data: any = await resp.json();
+          await db.collection('payment_orders').doc(data.id).set({
+            orderId: data.id, uid, catalogId: item.id, amountPaise: item.amountPaise,
+            currency: data.currency, createdAt: FieldValue.serverTimestamp(), testMode: false,
+          });
+          return {
           orderId: data.id,
           amount: data.amount,
           currency: data.currency,
@@ -454,6 +462,10 @@ export const createRazorpayOrder = onCall(
 
     // Fallback: Safe deterministic test mode order when keys are pending setup
     const testOrderId = `order_test_${Date.now()}`;
+    await db.collection('payment_orders').doc(testOrderId).set({
+      orderId: testOrderId, uid, catalogId: item.id, amountPaise: item.amountPaise,
+      currency: 'INR', createdAt: FieldValue.serverTimestamp(), testMode: true,
+    });
     return {
       orderId: testOrderId,
       amount: item.amountPaise,
@@ -523,8 +535,18 @@ export const verifyRazorpayPayment = onCall(
     await db.runTransaction(async (tx) => {
       // Replay defense: verify payment has not been processed previously
       const paymentLockSnap = await tx.get(paymentLockRef);
+      const orderSnap = await tx.get(db.collection('payment_orders').doc(orderId));
+      const subSnap = await tx.get(subDocRef);
       if (paymentLockSnap.exists) {
         throw new HttpsError("already-exists", "This payment has already been verified and processed.");
+      }
+      const orderData = orderSnap.data();
+      if (orderSnap.exists && (!orderData || orderData.uid !== uid || orderData.catalogId !== item.id ||
+        orderData.amountPaise !== item.amountPaise || orderData.currency !== 'INR')) {
+        throw new HttpsError('permission-denied', 'Payment order does not match this account or product.');
+      }
+      if (!orderSnap.exists && !isEmulator) {
+        throw new HttpsError('not-found', 'Payment order could not be verified.');
       }
 
       // Atomically record payment lock
@@ -537,7 +559,6 @@ export const verifyRazorpayPayment = onCall(
         processedAt: FieldValue.serverTimestamp(),
       });
 
-      const subSnap = await tx.get(subDocRef);
       const subData = subSnap.exists ? subSnap.data() || {} : {};
 
       const currentMonthlyUsed = subData.monthlyCreditsUsed ?? 0;

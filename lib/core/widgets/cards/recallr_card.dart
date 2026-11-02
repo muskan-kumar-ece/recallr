@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../theme/recallr_colors.dart';
 import '../../theme/recallr_radii.dart';
 import '../../theme/recallr_shadows.dart';
 import '../../theme/recallr_spacing.dart';
+import '../../theme/recallr_theme.dart';
 
 /// Reusable Charcoal Card container with 1px border and optional tap interaction.
 class RecallrCard extends StatelessWidget {
@@ -27,9 +27,10 @@ class RecallrCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final effectiveRadius = borderRadius ?? RecallrRadii.radiusLg;
-    final effectiveBorderColor = borderColor ?? RecallrColors.borderSubtle;
-    final effectiveBgColor = backgroundColor ?? RecallrColors.charcoalCard;
+    final effectiveBorderColor = borderColor ?? colors.borderSubtle;
+    final effectiveBgColor = backgroundColor ?? colors.charcoalCard;
 
     return Container(
       decoration: BoxDecoration(
